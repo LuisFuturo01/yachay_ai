@@ -5,60 +5,98 @@ class YachayTheme {
   YachayTheme._();
 
   // ─── Andean Color Palette ───
-  static const Color primaryPurple = Color(0xFF6B21A8);
-  static const Color primaryPurpleLight = Color(0xFF9333EA);
-  static const Color primaryPurpleDark = Color(0xFF4C1D95);
-  static const Color secondaryGold = Color(0xFFF59E0B);
-  static const Color secondaryGoldLight = Color(0xFFFBBF24);
-  static const Color accentTerracotta = Color(0xFFDC5F00);
-  static const Color backgroundCream = Color(0xFFFFF8F0);
+  static const Color primaryPurple = Color(0xFF7C3AED);
+  static const Color primaryPurpleLight = Color(0xFFA78BFA);
+  static const Color primaryPurpleDark = Color(0xFF5B21B6);
+  static const Color secondaryGold = Color(0xFFFBBF24);
+  static const Color secondaryGoldLight = Color(0xFFFDE68A);
+  static const Color accentTerracotta = Color(0xFFF97316);
+  static const Color backgroundCream = Color(0xFFFFFBEB);
   static const Color backgroundWhite = Color(0xFFFFFDF9);
   static const Color successGreen = Color(0xFF10B981);
   static const Color successGreenLight = Color(0xFFD1FAE5);
-  static const Color errorPink = Color(0xFFF43F5E);
-  static const Color errorPinkLight = Color(0xFFFFE4E6);
+  static const Color errorPink = Color(0xFFEF4444);
+  static const Color errorPinkLight = Color(0xFFFEE2E2);
   static const Color warningOrange = Color(0xFFF97316);
-  static const Color textDark = Color(0xFF1F1523);
-  static const Color textMedium = Color(0xFF6B7280);
-  static const Color textLight = Color(0xFF9CA3AF);
-  static const Color surfacePurple = Color(0xFFF3E8FF);
+  static const Color textDark = Color(0xFF1E1B4B);
+  static const Color textMedium = Color(0xFF475569);
+  static const Color textLight = Color(0xFF94A3B8);
+  static const Color surfacePurple = Color(0xFFEDE9FE);
   static const Color surfaceGold = Color(0xFFFEF3C7);
 
   // ─── Subject Colors ───
   static const Color mathColor = Color(0xFF7C3AED);
   static const Color scienceColor = Color(0xFF059669);
   static const Color socialColor = Color(0xFFDB2777);
-  static const Color aymaraColor = Color(0xFFE67E22);
+  static const Color aymaraColor = Color(0xFFEA580C);
+
+  // ─── Vibrant Subject Gradients ───
+  static const LinearGradient mathGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF8B5CF6), Color(0xFF4C1D95)],
+  );
+
+  static const LinearGradient scienceGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF10B981), Color(0xFF064E3B)],
+  );
+
+  static const LinearGradient socialGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFEC4899), Color(0xFF9D174D)],
+  );
+
+  static const LinearGradient aymaraGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFF97316), Color(0xFF7C2D12)],
+  );
+
+  static const LinearGradient teacherGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF0EA5E9), Color(0xFF1E3A8A)],
+  );
 
   // ─── Gradients ───
   static const LinearGradient primaryGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [primaryPurple, primaryPurpleLight],
+    colors: [primaryPurple, Color(0xFF6D28D9)],
   );
 
   static const LinearGradient goldGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [secondaryGold, Color(0xFFFFD700)],
+    colors: [secondaryGold, Color(0xFFF59E0B)],
   );
 
+  // Kid-friendly backgrounds: Sky, clouds, rainbow accents
   static const LinearGradient backgroundGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [Color(0xFFF3E8FF), backgroundCream],
+    colors: [Color(0xFFE0F2FE), Color(0xFFFFFBEB)], // Light sky blue to amber cream
+  );
+
+  static const LinearGradient playfulBackgroundGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0xFFDDD6FE), Color(0xFFFEE2E2), Color(0xFFFFFBEB)], // Violet to rose to cream
   );
 
   static const LinearGradient splashGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [primaryPurpleDark, primaryPurple, primaryPurpleLight],
+    colors: [Color(0xFF4C1D95), Color(0xFF7C3AED), Color(0xFF06B6D4)], // Deep purple to cyan
   );
 
-  // ─── Shadows ───
+  // ─── Shadows & 3D styling ───
   static List<BoxShadow> get softShadow => [
     BoxShadow(
-      color: primaryPurple.withValues(alpha: 0.10),
+      color: primaryPurple.withValues(alpha: 0.15),
       blurRadius: 20,
       offset: const Offset(0, 8),
     ),
@@ -66,17 +104,25 @@ class YachayTheme {
 
   static List<BoxShadow> get cardShadow => [
     BoxShadow(
-      color: primaryPurple.withValues(alpha: 0.08),
-      blurRadius: 12,
-      offset: const Offset(0, 4),
+      color: primaryPurple.withValues(alpha: 0.1),
+      blurRadius: 16,
+      offset: const Offset(0, 6),
+    ),
+  ];
+
+  // 3D Pressable Button style shadow (Duolingo style)
+  static List<BoxShadow> getButton3DShadow(Color darkColor) => [
+    BoxShadow(
+      color: darkColor,
+      offset: const Offset(0, 5),
     ),
   ];
 
   // ─── Border Radius ───
-  static BorderRadius get radiusSmall => BorderRadius.circular(12);
-  static BorderRadius get radiusMedium => BorderRadius.circular(20);
-  static BorderRadius get radiusLarge => BorderRadius.circular(28);
-  static BorderRadius get radiusXLarge => BorderRadius.circular(36);
+  static BorderRadius get radiusSmall => BorderRadius.circular(14);
+  static BorderRadius get radiusMedium => BorderRadius.circular(22);
+  static BorderRadius get radiusLarge => BorderRadius.circular(30);
+  static BorderRadius get radiusXLarge => BorderRadius.circular(40);
 
   // ─── Theme Data ───
   static ThemeData get theme {
@@ -98,7 +144,7 @@ class YachayTheme {
         scrolledUnderElevation: 0,
         centerTitle: true,
         titleTextStyle: GoogleFonts.outfit(
-          fontSize: 20,
+          fontSize: 22,
           fontWeight: FontWeight.bold,
           color: textDark,
         ),
@@ -114,8 +160,7 @@ class YachayTheme {
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
-          elevation: 4,
-          shadowColor: primaryPurple.withValues(alpha: 0.3),
+          elevation: 0, // styled manually for 3D or flat
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(

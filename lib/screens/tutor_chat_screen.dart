@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/theme.dart';
-import '../models/chat_message.dart';
+import '../models/lesson.dart';
 import '../services/tutor_service.dart';
-import '../widgets/chat_bubble.dart';
 import '../widgets/animated_tutor_avatar.dart';
-import '../widgets/feedback_overlay.dart';
 
 class TutorChatScreen extends StatefulWidget {
   final String subjectId;
@@ -29,199 +27,101 @@ class TutorChatScreen extends StatefulWidget {
 }
 
 class _TutorChatScreenState extends State<TutorChatScreen> {
-  final TextEditingController _controller = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
-  final List<ChatMessage> _messages = [];
   final TutorService _tutor = TutorService.instance;
+  late Lesson _lesson;
 
   int _currentQuestionIndex = 0;
   int _currentHintIndex = 0;
   int _correctAnswers = 0;
-  int _totalAttempts = 0;
-  bool _isProcessing = false;
-  bool _showFeedback = false;
-  bool _feedbackIsCorrect = false;
-  String _feedbackMessage = '';
+  int _totalAttemptsForQuestion = 0;
   TutorState _tutorState = TutorState.idle;
+
+  // Selection states
+  int? _selectedOptionIndex;
+  bool _checked = false;
+
+  // Particle explosion trigger
+  bool _triggerExplosion = false;
 
   @override
   void initState() {
     super.initState();
-    _loadFirstQuestion();
+    _lesson = _tutor.getLesson(widget.subjectId, widget.level);
   }
 
-  void _loadFirstQuestion() {
-    final lesson = _tutor.getLesson(widget.subjectId, widget.level);
-    _messages.add(ChatMessage(
-      text: '¡Hola! Soy Yachay, tu tutor de ${widget.subjectName}. 😊\n\n'
-          'Hoy vamos a practicar: "${lesson.title}" ${lesson.emoji}\n\n'
-          '¡Hay ${lesson.questions.length} preguntas! ¿Estás listo?',
-      isUser: false,
-      type: MessageType.normal,
-    ));
-
-    Future.delayed(const Duration(milliseconds: 800), () {
-      if (mounted) _askCurrentQuestion();
+  void _onOptionTap(int index) {
+    if (_checked) return; // Cannot change selection once checked
+    setState(() {
+      _selectedOptionIndex = index;
     });
   }
 
-  void _askCurrentQuestion() {
-    final lesson = _tutor.getLesson(widget.subjectId, widget.level);
-    if (_currentQuestionIndex >= lesson.questions.length) {
-      _onLessonComplete();
-      return;
-    }
+  void _checkAnswer() {
+    if (_selectedOptionIndex == null || _checked) return;
 
-    final question = lesson.questions[_currentQuestionIndex];
+    final question = _lesson.questions[_currentQuestionIndex];
+    final selectedAnswer = question.options![_selectedOptionIndex!];
+    final isCorrect = selectedAnswer == question.correctAnswer;
+
     setState(() {
-      _messages.add(ChatMessage(
-        text: '📝 Pregunta ${_currentQuestionIndex + 1}:\n\n${question.question}',
-        isUser: false,
-        type: MessageType.normal,
-      ));
-
-      // Show options if available
-      if (question.options != null && question.options!.isNotEmpty) {
-        final optionsText =
-            question.options!.asMap().entries.map((e) {
-              final letters = ['A', 'B', 'C', 'D'];
-              return '${letters[e.key]}) ${e.value}';
-            }).join('\n');
-        _messages.add(ChatMessage(
-          text: optionsText,
-          isUser: false,
-          type: MessageType.system,
-        ));
-      }
-
-      _currentHintIndex = 0;
-      _tutorState = TutorState.idle;
+      _checked = true;
+      _totalAttemptsForQuestion++;
     });
-    _scrollToBottom();
-  }
 
-  Future<void> _sendAnswer() async {
-    final answer = _controller.text.trim();
-    if (answer.isEmpty || _isProcessing) return;
-
-    setState(() {
-      _messages.add(ChatMessage(
-        text: answer,
-        isUser: true,
-      ));
-      _controller.clear();
-      _isProcessing = true;
-      _totalAttempts++;
-      _tutorState = TutorState.thinking;
-
-      // Show thinking indicator
-      _messages.add(ChatMessage(
-        text: '',
-        isUser: false,
-        type: MessageType.thinking,
-      ));
-    });
-    _scrollToBottom();
-
-    // Evaluate with tutor service
-    final response = await _tutor.evaluateAnswer(
-      subjectId: widget.subjectId,
-      level: widget.level,
-      questionIndex: _currentQuestionIndex,
-      userAnswer: _resolveAnswer(answer),
-    );
-
-    if (!mounted) return;
-
-    setState(() {
-      // Remove thinking indicator
-      _messages.removeWhere((m) => m.type == MessageType.thinking);
-
-      if (response.isCorrect) {
-        _messages.add(ChatMessage(
-          text: response.message,
-          isUser: false,
-          type: MessageType.correct,
-        ));
+    if (isCorrect) {
+      setState(() {
         _tutorState = TutorState.happy;
         _correctAnswers++;
-        _currentQuestionIndex++;
-        _isProcessing = false;
-
-        // Show feedback overlay
-        _feedbackIsCorrect = true;
-        _feedbackMessage = response.message;
-        _showFeedback = true;
-      } else {
+        _triggerExplosion = true;
+      });
+      // Reset explosion state after a short delay
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (mounted) setState(() => _triggerExplosion = false);
+      });
+    } else {
+      setState(() {
         _currentHintIndex++;
-        _messages.add(ChatMessage(
-          text: response.message,
-          isUser: false,
-          type: MessageType.hint,
-        ));
         _tutorState = TutorState.thinking;
-        _isProcessing = false;
-
-        // If too many attempts, give the answer
-        if (_currentHintIndex >= 3) {
-          final lesson = _tutor.getLesson(widget.subjectId, widget.level);
-          final correctAnswer =
-              lesson.questions[_currentQuestionIndex].correctAnswer;
-          _messages.add(ChatMessage(
-            text: '💡 La respuesta correcta es: $correctAnswer\n\n'
-                '${lesson.questions[_currentQuestionIndex].explanation}\n\n'
-                '¡No te preocupes, lo harás mejor la próxima vez!',
-            isUser: false,
-            type: MessageType.incorrect,
-          ));
-          _currentQuestionIndex++;
-
-          _feedbackIsCorrect = false;
-          _feedbackMessage = '¡Sigue practicando! La próxima vez lo lograrás.';
-          _showFeedback = true;
-        }
-      }
-    });
-    _scrollToBottom();
+      });
+    }
   }
 
-  String _resolveAnswer(String answer) {
-    // Map letter options to actual answers
-    final lesson = _tutor.getLesson(widget.subjectId, widget.level);
-    if (_currentQuestionIndex >= lesson.questions.length) return answer;
+  void _continueNext() {
+    final question = _lesson.questions[_currentQuestionIndex];
+    final selectedAnswer = question.options![_selectedOptionIndex!];
+    final isCorrect = selectedAnswer == question.correctAnswer;
 
-    final question = lesson.questions[_currentQuestionIndex];
-    if (question.options == null || question.options!.isEmpty) return answer;
+    if (isCorrect || _currentHintIndex >= 3) {
+      // Move to next question
+      setState(() {
+        _currentQuestionIndex++;
+        _selectedOptionIndex = null;
+        _checked = false;
+        _currentHintIndex = 0;
+        _totalAttemptsForQuestion = 0;
+        _tutorState = TutorState.idle;
+      });
 
-    final upperAnswer = answer.toUpperCase().trim();
-    final letterMap = {'A': 0, 'B': 1, 'C': 2, 'D': 3};
-
-    if (letterMap.containsKey(upperAnswer)) {
-      final idx = letterMap[upperAnswer]!;
-      if (idx < question.options!.length) {
-        return question.options![idx];
+      if (_currentQuestionIndex >= _lesson.questions.length) {
+        _onLessonComplete();
       }
+    } else {
+      // Let them try again
+      setState(() {
+        _checked = false;
+        _selectedOptionIndex = null;
+        _tutorState = TutorState.idle;
+      });
     }
-    return answer;
   }
 
   void _onLessonComplete() {
     setState(() {
       _tutorState = TutorState.celebrating;
-      _messages.add(ChatMessage(
-        text: '🎉🎉🎉\n\n¡FELICIDADES! ¡Completaste la lección!\n\n'
-            'Respuestas correctas: $_correctAnswers/${_tutor.getLesson(widget.subjectId, widget.level).questions.length}\n\n'
-            '¡Eres increíble! 🌟',
-        isUser: false,
-        type: MessageType.correct,
-      ));
     });
-    _scrollToBottom();
 
-    // Navigate to victory screen
-    Future.delayed(const Duration(seconds: 2), () {
+    Future.delayed(const Duration(milliseconds: 800), () {
       if (mounted) {
-        final lesson = _tutor.getLesson(widget.subjectId, widget.level);
         Navigator.pushReplacementNamed(
           context,
           '/victory',
@@ -231,233 +131,573 @@ class _TutorChatScreenState extends State<TutorChatScreen> {
             'subjectEmoji': widget.subjectEmoji,
             'level': widget.level,
             'correctAnswers': _correctAnswers,
-            'totalQuestions': lesson.questions.length,
-            'pointsEarned': lesson.pointsReward,
+            'totalQuestions': _lesson.questions.length,
+            'pointsEarned': _lesson.pointsReward,
           },
         );
       }
     });
   }
 
-  void _scrollToBottom() {
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
-  }
-
-  void _dismissFeedback() {
-    setState(() {
-      _showFeedback = false;
-      if (_feedbackIsCorrect) {
-        // Load next question
-        _askCurrentQuestion();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final lesson = _tutor.getLesson(widget.subjectId, widget.level);
-    final progress = _currentQuestionIndex / lesson.questions.length;
-
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Main content
-          Container(
-            decoration:
-                const BoxDecoration(gradient: YachayTheme.backgroundGradient),
-            child: SafeArea(
-              child: Column(
-                children: [
-                  // ─── App Bar ───
-                  _buildAppBar(lesson.title, progress),
-
-                  // ─── Chat Messages ───
-                  Expanded(
-                    child: ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      itemCount: _messages.length,
-                      itemBuilder: (context, index) {
-                        return ChatBubble(
-                          message: _messages[index],
-                          tutorEmoji: widget.subjectEmoji,
-                        );
-                      },
-                    ),
-                  ),
-
-                  // ─── Input Area ───
-                  _buildInputArea(),
-                ],
-              ),
+  void _showExitConfirmation() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: YachayTheme.radiusMedium),
+        backgroundColor: Colors.white,
+        title: Text(
+          '¿Quieres salir? 😢',
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: YachayTheme.textDark),
+          textAlign: TextAlign.center,
+        ),
+        content: Text(
+          'Tu progreso en esta lección se perderá si sales ahora.',
+          style: GoogleFonts.nunito(color: YachayTheme.textMedium),
+          textAlign: TextAlign.center,
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              Navigator.pop(context); // Exit lesson
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: YachayTheme.errorPink,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
+            child: Text('Salir', style: GoogleFonts.nunito(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
-
-          // Feedback overlay
-          if (_showFeedback)
-            FeedbackOverlay(
-              isCorrect: _feedbackIsCorrect,
-              message: _feedbackMessage,
-              onDismiss: _dismissFeedback,
+          OutlinedButton(
+            onPressed: () => Navigator.pop(context),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              side: const BorderSide(color: YachayTheme.primaryPurple, width: 2),
             ),
+            child: Text('Seguir Jugando', style: GoogleFonts.nunito(fontWeight: FontWeight.bold)),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildAppBar(String lessonTitle, double progress) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
+  @override
+  Widget build(BuildContext context) {
+    if (_currentQuestionIndex >= _lesson.questions.length) {
+      return Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(gradient: YachayTheme.playfulBackgroundGradient),
+          child: const Center(
+            child: CircularProgressIndicator(color: YachayTheme.primaryPurple),
+          ),
+        ),
+      );
+    }
+
+    final question = _lesson.questions[_currentQuestionIndex];
+    final progress = _currentQuestionIndex / _lesson.questions.length;
+    final themeColor = widget.subjectColor;
+
+    // Evaluate response parameters
+    final isCorrect = _checked && question.options![_selectedOptionIndex!] == question.correctAnswer;
+    final isTryAgain = _checked && !isCorrect && _currentHintIndex < 3;
+    final isFailFinal = _checked && !isCorrect && _currentHintIndex >= 3;
+
+    return Scaffold(
+      body: Stack(
         children: [
-          // Back button
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: YachayTheme.cardShadow,
-              ),
-              child: const Icon(Icons.arrow_back_rounded, size: 20),
+          // ─── Playful Background ───
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: YachayTheme.playfulBackgroundGradient,
             ),
           ),
 
-          const SizedBox(width: 12),
+          // Drifting Cloud deco
+          Positioned(
+            top: 100,
+            right: -20,
+            child: const Text('☁️', style: TextStyle(fontSize: 60))
+                .animate(onPlay: (c) => c.repeat(reverse: true))
+                .slideX(begin: 0, end: -0.1, duration: 7.seconds),
+          ),
 
-          // Lesson info
-          Expanded(
+          // ─── Main Content ───
+          SafeArea(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '${widget.subjectEmoji} ${widget.subjectName}',
-                  style: GoogleFonts.nunito(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: YachayTheme.textMedium,
+                // ─── Top Bar ───
+                _buildHeader(progress, themeColor),
+
+                // ─── Quiz Area ───
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 10),
+
+                        // Tutor Helper Banner
+                        _buildTutorBanner(question),
+
+                        const SizedBox(height: 16),
+
+                        // Question Bubble Card
+                        _buildQuestionCard(question, themeColor),
+
+                        const SizedBox(height: 24),
+
+                        // Options Grid/List
+                        _buildOptions(question, themeColor),
+
+                        const SizedBox(height: 24),
+                      ],
+                    ),
                   ),
                 ),
-                Text(
-                  lessonTitle,
-                  style: GoogleFonts.outfit(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: YachayTheme.textDark,
+
+                // ─── Bottom Actions Bar ───
+                _buildBottomBar(themeColor, isCorrect, isTryAgain, isFailFinal, question),
+              ],
+            ),
+          ),
+
+          // ─── Confetti Explosion Overlay ───
+          if (_triggerExplosion) _buildParticleExplosion(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(double progress, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          // Exit 'X' Button
+          GestureDetector(
+            onTap: _showExitConfirmation,
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                border: Border.all(color: YachayTheme.textLight.withValues(alpha: 0.3), width: 2),
+                boxShadow: YachayTheme.cardShadow,
+              ),
+              child: const Icon(Icons.close_rounded, size: 24, color: YachayTheme.textDark),
+            ),
+          ),
+          const SizedBox(width: 14),
+
+          // Progress Bar
+          Expanded(
+            child: Stack(
+              children: [
+                // Background track
+                Container(
+                  height: 18,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: YachayTheme.textLight.withValues(alpha: 0.2), width: 1.5),
+                  ),
+                ),
+                // Fill
+                AnimatedFractionallySizedBox(
+                  widthFactor: progress.clamp(0.05, 1.0),
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOut,
+                  child: Container(
+                    height: 18,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [color.withValues(alpha: 0.7), color],
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: color.withValues(alpha: 0.3),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
           ),
+          const SizedBox(width: 14),
 
-          // Tutor avatar
-          AnimatedTutorAvatar(
-            emoji: widget.subjectEmoji,
-            state: _tutorState,
-            size: 44,
+          // Level Indicator text
+          Text(
+            '${_currentQuestionIndex + 1}/${_lesson.questions.length}',
+            style: GoogleFonts.outfit(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildInputArea() {
+  Widget _buildTutorBanner(Question question) {
+    String tutorSpeech = '¡Hola! Ayúdame a resolver esta pregunta.';
+    if (_tutorState == TutorState.happy) {
+      tutorSpeech = '¡Fantástico! ¡Respuesta correcta! 🌟';
+    } else if (_tutorState == TutorState.thinking) {
+      if (question.hints.isNotEmpty) {
+        final hintIdx = (_currentHintIndex - 1).clamp(0, question.hints.length - 1);
+        tutorSpeech = '💡 Pista de Yachay: ${question.hints[hintIdx]}';
+      } else {
+        tutorSpeech = '¡Inténtalo otra vez! Yo sé que puedes.';
+      }
+    }
+
+    return Row(
+      children: [
+        AnimatedTutorAvatar(
+          emoji: widget.subjectEmoji,
+          state: _tutorState,
+          size: 54,
+        ).animate().scale(
+          begin: const Offset(0.8, 0.8),
+          end: const Offset(1.0, 1.0),
+          duration: 500.ms,
+          curve: Curves.elasticOut,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topRight: const Radius.circular(20),
+                bottomLeft: const Radius.circular(20),
+                bottomRight: const Radius.circular(20),
+              ),
+              border: Border.all(
+                color: YachayTheme.primaryPurple.withValues(alpha: 0.15),
+                width: 2,
+              ),
+              boxShadow: YachayTheme.cardShadow,
+            ),
+            child: Text(
+              tutorSpeech,
+              style: GoogleFonts.nunito(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: YachayTheme.textDark,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuestionCard(Question question, Color color) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 8, 16),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.white.withValues(alpha: 0.95),
+        borderRadius: YachayTheme.radiusLarge,
+        border: Border.all(color: color.withValues(alpha: 0.25), width: 3),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -3),
+            color: color.withValues(alpha: 0.15),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Row(
+      child: Column(
         children: [
-          // Text field
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: YachayTheme.backgroundCream,
-                borderRadius: BorderRadius.circular(24),
+          if (question.imageEmoji != null) ...[
+            Text(
+              question.imageEmoji!,
+              style: const TextStyle(fontSize: 54),
+            ).animate().scale(begin: const Offset(0.7, 0.7), duration: 500.ms, curve: Curves.elasticOut),
+            const SizedBox(height: 12),
+          ],
+          Text(
+            question.question,
+            style: GoogleFonts.outfit(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: YachayTheme.textDark,
+              height: 1.3,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1);
+  }
+
+  Widget _buildOptions(Question question, Color themeColor) {
+    if (question.options == null || question.options!.isEmpty) {
+      return const SizedBox();
+    }
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 14,
+        crossAxisSpacing: 14,
+        childAspectRatio: 1.2,
+      ),
+      itemCount: question.options!.length,
+      itemBuilder: (context, index) {
+        final option = question.options![index];
+        final isSelected = _selectedOptionIndex == index;
+        final letters = ['A', 'B', 'C', 'D'];
+
+        return GestureDetector(
+          onTap: () => _onOptionTap(index),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isSelected ? themeColor.withValues(alpha: 0.15) : Colors.white,
+              borderRadius: YachayTheme.radiusMedium,
+              border: Border.all(
+                color: isSelected ? themeColor : YachayTheme.textLight.withValues(alpha: 0.3),
+                width: isSelected ? 3 : 2,
               ),
-              child: TextField(
-                controller: _controller,
-                enabled: !_isProcessing,
-                style: GoogleFonts.nunito(fontSize: 16),
-                decoration: InputDecoration(
-                  hintText: 'Escribe tu respuesta...',
-                  border: InputBorder.none,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  hintStyle: GoogleFonts.nunito(
-                    color: YachayTheme.textLight,
-                    fontSize: 16,
+              boxShadow: isSelected
+                  ? [BoxShadow(color: themeColor.withValues(alpha: 0.2), blurRadius: 10)]
+                  : YachayTheme.getButton3DShadow(Colors.grey.shade300),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Option label card (A, B, C, D)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isSelected ? themeColor : YachayTheme.surfacePurple,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    letters[index],
+                    style: GoogleFonts.outfit(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected ? Colors.white : YachayTheme.primaryPurple,
+                    ),
                   ),
                 ),
-                onSubmitted: (_) => _sendAnswer(),
+                const SizedBox(height: 8),
+                Text(
+                  option,
+                  style: GoogleFonts.nunito(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: YachayTheme.textDark,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ).animate(delay: (index * 100).ms).fadeIn().scale(begin: const Offset(0.9, 0.9));
+      },
+    );
+  }
+
+  Widget _buildBottomBar(
+    Color themeColor,
+    bool isCorrect,
+    bool isTryAgain,
+    bool isFailFinal,
+    Question question,
+  ) {
+    final hasSelection = _selectedOptionIndex != null;
+
+    // Normal Check Button Container
+    if (!_checked) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(
+            top: BorderSide(color: YachayTheme.textLight.withValues(alpha: 0.15), width: 2),
+          ),
+        ),
+        child: GestureDetector(
+          onTap: hasSelection ? _checkAnswer : null,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            height: 56,
+            decoration: BoxDecoration(
+              color: hasSelection ? themeColor : Colors.grey.shade300,
+              borderRadius: YachayTheme.radiusMedium,
+              boxShadow: hasSelection
+                  ? YachayTheme.getButton3DShadow(themeColor.withValues(alpha: 0.7))
+                  : [],
+            ),
+            child: Center(
+              child: Text(
+                'COMPROBAR',
+                style: GoogleFonts.outfit(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: hasSelection ? Colors.white : Colors.grey.shade500,
+                  letterSpacing: 1.1,
+                ),
               ),
             ),
           ),
-          const SizedBox(width: 8),
+        ),
+      );
+    }
 
-          // Send button
-          GestureDetector(
-            onTap: _sendAnswer,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                gradient: _controller.text.isNotEmpty
-                    ? YachayTheme.primaryGradient
-                    : null,
-                color: _controller.text.isEmpty
-                    ? YachayTheme.surfacePurple
-                    : null,
-                shape: BoxShape.circle,
-                boxShadow: _controller.text.isNotEmpty
-                    ? [
-                        BoxShadow(
-                          color:
-                              YachayTheme.primaryPurple.withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
-                        ),
-                      ]
-                    : [],
+    // Colors according to state
+    Color feedbackBg = YachayTheme.successGreenLight;
+    Color feedbackBorder = YachayTheme.successGreen;
+    Color feedbackText = YachayTheme.successGreen;
+    String feedbackTitle = '¡Excelente! 🎉';
+    String feedbackDesc = question.explanation;
+    String buttonText = 'CONTINUAR';
+
+    if (isTryAgain) {
+      feedbackBg = YachayTheme.surfaceGold;
+      feedbackBorder = YachayTheme.secondaryGold;
+      feedbackText = YachayTheme.accentTerracotta;
+      feedbackTitle = '¡Casi! 💡 Pista';
+      feedbackDesc = question.hints[(_currentHintIndex - 1).clamp(0, question.hints.length - 1)];
+      buttonText = 'INTENTAR DE NUEVO';
+    } else if (isFailFinal) {
+      feedbackBg = YachayTheme.errorPinkLight;
+      feedbackBorder = YachayTheme.errorPink;
+      feedbackText = YachayTheme.errorPink;
+      feedbackTitle = '¡Incorrecto! 😢';
+      feedbackDesc = 'La respuesta correcta es: ${question.correctAnswer}.\n\n${question.explanation}';
+      buttonText = 'CONTINUAR';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      decoration: BoxDecoration(
+        color: feedbackBg,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(28),
+          topRight: Radius.circular(28),
+        ),
+        border: Border.all(color: feedbackBorder.withValues(alpha: 0.4), width: 3),
+        boxShadow: [
+          BoxShadow(
+            color: feedbackBorder.withValues(alpha: 0.1),
+            blurRadius: 16,
+            spreadRadius: 2,
+            offset: const Offset(0, -4),
+          )
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(
+                isCorrect
+                    ? Icons.check_circle_rounded
+                    : isTryAgain
+                        ? Icons.lightbulb_rounded
+                        : Icons.cancel_rounded,
+                color: feedbackBorder,
+                size: 32,
               ),
-              child: Icon(
-                Icons.send_rounded,
-                color: _controller.text.isNotEmpty
-                    ? Colors.white
-                    : YachayTheme.textLight,
-                size: 22,
+              const SizedBox(width: 10),
+              Text(
+                feedbackTitle,
+                style: GoogleFonts.outfit(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: feedbackText,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            feedbackDesc,
+            style: GoogleFonts.nunito(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: YachayTheme.textDark,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 20),
+          GestureDetector(
+            onTap: _continueNext,
+            child: Container(
+              height: 56,
+              decoration: BoxDecoration(
+                color: feedbackBorder,
+                borderRadius: YachayTheme.radiusMedium,
+                boxShadow: YachayTheme.getButton3DShadow(
+                  feedbackBorder.withValues(alpha: 0.6),
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  buttonText,
+                  style: GoogleFonts.outfit(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 1,
+                  ),
+                ),
               ),
             ),
           ),
         ],
       ),
-    ).animate().slideY(begin: 0.5, duration: 300.ms);
+    ).animate().slideY(begin: 0.5, end: 0, duration: 250.ms, curve: Curves.easeOut);
+  }
+
+  // ─── Simple Particle Explosion Emitter ───
+  Widget _buildParticleExplosion() {
+    return Stack(
+      children: List.generate(24, (index) {
+        final double angle = (index * 15) * 3.14159 / 180;
+        final double dist = 100.0 + (index % 3) * 40.0;
+        final double dx = dist * 1.5 * (angle == 0 ? 1 : angle > 3.14159 ? -1 : 1); 
+        // We can just randomize offsets using flutter_animate translations
+        return Align(
+          alignment: Alignment.center,
+          child: const Text('⭐', style: TextStyle(fontSize: 24))
+              .animate()
+              .scale(begin: const Offset(0.1, 0.1), end: const Offset(1.5, 1.5), duration: 800.ms)
+              .custom(
+                builder: (context, val, child) {
+                  return Transform.translate(
+                    offset: Offset(dx * val, -dist * val + (100 * val * val)),
+                    child: child,
+                  );
+                },
+                duration: 1000.ms,
+              )
+              .fadeOut(duration: 800.ms),
+        );
+      }),
+    );
   }
 }

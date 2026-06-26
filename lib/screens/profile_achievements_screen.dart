@@ -25,7 +25,7 @@ class ProfileAchievementsScreen extends StatelessWidget {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: const BoxDecoration(gradient: YachayTheme.backgroundGradient),
+        decoration: const BoxDecoration(gradient: YachayTheme.playfulBackgroundGradient),
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -239,12 +239,17 @@ class ProfileAchievementsScreen extends StatelessWidget {
             TutorService.instance.getTotalLevels(subjectId);
         final ratio = progress / total;
 
+        final Color subjectColor = subject['color'] as Color;
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: YachayTheme.radiusMedium,
+            border: Border.all(
+              color: subjectColor.withValues(alpha: 0.25),
+              width: 2,
+            ),
             boxShadow: YachayTheme.cardShadow,
           ),
           child: Row(

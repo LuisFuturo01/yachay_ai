@@ -43,156 +43,210 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(gradient: YachayTheme.backgroundGradient),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const SizedBox(height: 20),
+      body: Stack(
+        children: [
+          // ─── Playful Background ───
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: YachayTheme.playfulBackgroundGradient,
+            ),
+          ),
 
-                // ─── Title ───
-                Text(
-                  '¿Cómo te llamas? 😊',
-                  style: GoogleFonts.outfit(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: YachayTheme.textDark,
-                  ),
-                ).animate().fadeIn(duration: 500.ms).slideY(begin: -0.2),
+          // Floating clouds decoration
+          Positioned(
+            top: 50,
+            left: -30,
+            child: const Text('☁️', style: TextStyle(fontSize: 60))
+                .animate(onPlay: (c) => c.repeat(reverse: true))
+                .slideX(begin: 0, end: 0.12, duration: 6.seconds),
+          ),
+          Positioned(
+            top: 180,
+            right: -20,
+            child: const Text('☁️', style: TextStyle(fontSize: 50))
+                .animate(onPlay: (c) => c.repeat(reverse: true))
+                .slideX(begin: 0, end: -0.1, duration: 8.seconds),
+          ),
 
-                const SizedBox(height: 8),
-                Text(
-                  'Escribe tu nombre para comenzar',
-                  style: GoogleFonts.nunito(
-                    fontSize: 16,
-                    color: YachayTheme.textMedium,
-                  ),
-                ).animate().fadeIn(delay: 200.ms),
+          // ─── Content ───
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 10),
 
-                const SizedBox(height: 24),
-
-                // ─── Name Input ───
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: YachayTheme.radiusMedium,
-                    boxShadow: YachayTheme.cardShadow,
-                  ),
-                  child: TextField(
-                    controller: _nameController,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.nunito(
-                      fontSize: 20,
+                  // ─── Title ───
+                  Text(
+                    '¿Cómo te llamas? 😊',
+                    style: GoogleFonts.outfit(
+                      fontSize: 30,
                       fontWeight: FontWeight.bold,
                       color: YachayTheme.textDark,
                     ),
-                    decoration: InputDecoration(
-                      hintText: 'Tu nombre aquí...',
-                      prefixIcon: const Padding(
-                        padding: EdgeInsets.only(left: 16),
-                        child: Text('✏️', style: TextStyle(fontSize: 20)),
+                  ).animate().fadeIn(duration: 500.ms).slideY(begin: -0.2),
+
+                  const SizedBox(height: 8),
+                  Text(
+                    'Escribe tu nombre para comenzar la aventura',
+                    style: GoogleFonts.nunito(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: YachayTheme.textMedium,
+                    ),
+                  ).animate().fadeIn(delay: 200.ms),
+
+                  const SizedBox(height: 24),
+
+                  // ─── Name Input ───
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: YachayTheme.radiusMedium,
+                      boxShadow: YachayTheme.cardShadow,
+                    ),
+                    child: TextField(
+                      controller: _nameController,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.nunito(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: YachayTheme.textDark,
                       ),
-                      prefixIconConstraints: const BoxConstraints(minWidth: 50),
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: YachayTheme.radiusMedium,
-                        borderSide: BorderSide.none,
+                      decoration: InputDecoration(
+                        hintText: 'Tu nombre aquí...',
+                        prefixIcon: const Padding(
+                          padding: EdgeInsets.only(left: 16),
+                          child: Text('✏️', style: TextStyle(fontSize: 20)),
+                        ),
+                        prefixIconConstraints: const BoxConstraints(minWidth: 50),
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.9),
+                        border: OutlineInputBorder(
+                          borderRadius: YachayTheme.radiusMedium,
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: YachayTheme.radiusMedium,
+                          borderSide: const BorderSide(
+                            color: YachayTheme.primaryPurple,
+                            width: 2,
+                          ),
+                        ),
                       ),
-                      focusedBorder: OutlineInputBorder(
+                      onChanged: (_) => setState(() {}),
+                    ),
+                  ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1),
+
+                  const SizedBox(height: 36),
+
+                  // ─── Avatar Selection Title ───
+                  Text(
+                    'Elige tu compañero de aventura 🐾',
+                    style: GoogleFonts.outfit(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: YachayTheme.textDark,
+                    ),
+                  ).animate().fadeIn(delay: 400.ms),
+
+                  const SizedBox(height: 20),
+
+                  // ─── Avatar Grid ───
+                  AvatarSelector(
+                    selectedId: _selectedAvatarId,
+                    onSelected: (id) {
+                      setState(() => _selectedAvatarId = id);
+                    },
+                  ),
+
+                  // Mascot Speech Bubble
+                  if (_selectedAvatarId != null) ...[
+                    const SizedBox(height: 24),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
                         borderRadius: YachayTheme.radiusMedium,
-                        borderSide: const BorderSide(
-                          color: YachayTheme.primaryPurple,
+                        border: Border.all(
+                          color: YachayTheme.primaryPurple.withValues(alpha: 0.2),
                           width: 2,
                         ),
+                        boxShadow: YachayTheme.softShadow,
                       ),
-                    ),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1),
-
-                const SizedBox(height: 36),
-
-                // ─── Avatar Selection Title ───
-                Text(
-                  'Elige tu compañero de aventura 🐾',
-                  style: GoogleFonts.outfit(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: YachayTheme.textDark,
-                  ),
-                ).animate().fadeIn(delay: 400.ms),
-
-                const SizedBox(height: 20),
-
-                // ─── Avatar Grid ───
-                AvatarSelector(
-                  selectedId: _selectedAvatarId,
-                  onSelected: (id) {
-                    setState(() => _selectedAvatarId = id);
-                  },
-                ),
-
-                const SizedBox(height: 36),
-
-                // ─── Continue Button ───
-                AnimatedOpacity(
-                  opacity: _isValid ? 1.0 : 0.4,
-                  duration: const Duration(milliseconds: 300),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: _isValid && !_isLoading ? _createProfile : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: YachayTheme.primaryPurple,
-                        disabledBackgroundColor:
-                            YachayTheme.primaryPurple.withValues(alpha: 0.3),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
+                      child: Text(
+                        '¡Hola, ${_nameController.text.trim().isEmpty ? "amiguito" : _nameController.text.trim()}! Soy tu compañero ideal. ¡Viajemos juntos por Bolivia! ⛰️🎒✨',
+                        style: GoogleFonts.nunito(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: YachayTheme.primaryPurple,
                         ),
-                        elevation: _isValid ? 6 : 0,
-                        shadowColor:
-                            YachayTheme.primaryPurple.withValues(alpha: 0.3),
+                        textAlign: TextAlign.center,
                       ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 3,
-                              ),
-                            )
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  '¡Listo, vamos!',
-                                  style: GoogleFonts.nunito(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
+                    ).animate().scale(
+                      begin: const Offset(0.8, 0.8),
+                      end: const Offset(1.0, 1.0),
+                      duration: 400.ms,
+                      curve: Curves.easeOutBack,
+                    ),
+                  ],
+
+                  const SizedBox(height: 36),
+
+                  // ─── Continue Button (3D style) ───
+                  AnimatedOpacity(
+                    opacity: _isValid ? 1.0 : 0.4,
+                    duration: const Duration(milliseconds: 300),
+                    child: GestureDetector(
+                      onTap: _isValid && !_isLoading ? _createProfile : null,
+                      child: Container(
+                        height: 56,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: _isValid ? YachayTheme.primaryPurple : Colors.grey.shade400,
+                          borderRadius: YachayTheme.radiusMedium,
+                          boxShadow: _isValid
+                              ? YachayTheme.getButton3DShadow(YachayTheme.primaryPurpleDark)
+                              : [],
+                        ),
+                        child: Center(
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
                                     color: Colors.white,
+                                    strokeWidth: 3,
                                   ),
+                                )
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      '¡Listo, vamos!',
+                                      style: GoogleFonts.nunito(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Text('🚀', style: TextStyle(fontSize: 20)),
+                                  ],
                                 ),
-                                const SizedBox(width: 8),
-                                const Text('🎉',
-                                    style: TextStyle(fontSize: 22)),
-                              ],
-                            ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
 
-                const SizedBox(height: 24),
-              ],
+                  const SizedBox(height: 24),
+                ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

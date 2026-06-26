@@ -26,6 +26,7 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
   bool _isGood = false;
   int _wordsCompleted = 0;
   late AnimationController _pulseController;
+  bool _isFlipped = false;
 
   @override
   void initState() {
@@ -78,6 +79,7 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
   void _nextWord() {
     setState(() {
       _wordsCompleted++;
+      _isFlipped = false; // Reset card flip
       if (_currentWordIndex < _lesson.words.length - 1) {
         _currentWordIndex++;
         _showResult = false;
@@ -235,6 +237,33 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
   }
 
   Widget _buildWordCard() {
+    return GestureDetector(
+      onTap: () => setState(() => _isFlipped = !_isFlipped),
+      child: TweenAnimationBuilder<double>(
+        tween: Tween<double>(begin: 0, end: _isFlipped ? 180 : 0),
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+        builder: (context, val, child) {
+          final isBack = val >= 90;
+          return Transform(
+            alignment: Alignment.center,
+            transform: Matrix4.identity()
+              ..setEntry(3, 2, 0.001) // perspective
+              ..rotateY(val * 3.14159265 / 180),
+            child: isBack
+                ? Transform(
+                    alignment: Alignment.center,
+                    transform: Matrix4.identity()..rotateY(3.14159265),
+                    child: _buildCardBack(),
+                  )
+                : _buildCardFront(),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildCardFront() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(28),
@@ -243,14 +272,14 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
         borderRadius: YachayTheme.radiusLarge,
         boxShadow: [
           BoxShadow(
-            color: YachayTheme.aymaraColor.withValues(alpha: 0.12),
+            color: YachayTheme.aymaraColor.withValues(alpha: 0.15),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
         ],
         border: Border.all(
-          color: YachayTheme.aymaraColor.withValues(alpha: 0.15),
-          width: 2,
+          color: YachayTheme.aymaraColor.withValues(alpha: 0.25),
+          width: 3,
         ),
       ),
       child: Column(
@@ -263,44 +292,99 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
           Text(
             _currentWord.word,
             style: GoogleFonts.outfit(
-              fontSize: 36,
+              fontSize: 38,
               fontWeight: FontWeight.w800,
               color: YachayTheme.aymaraColor,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
-              color: YachayTheme.aymaraColor.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(12),
+              color: YachayTheme.surfaceGold,
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Text(
-              _currentWord.translation,
-              style: GoogleFonts.nunito(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: YachayTheme.textDark,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.touch_app_rounded, size: 16, color: YachayTheme.warningOrange),
+                const SizedBox(width: 6),
+                Text(
+                  'Ver traducción',
+                  style: GoogleFonts.nunito(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: YachayTheme.warningOrange,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCardBack() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        gradient: YachayTheme.aymaraGradient,
+        borderRadius: YachayTheme.radiusLarge,
+        boxShadow: [
+          BoxShadow(
+            color: YachayTheme.aymaraColor.withValues(alpha: 0.25),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.4),
+          width: 3,
+        ),
+      ),
+      child: Column(
+        children: [
+          Text(
+            _currentWord.translation,
+            style: GoogleFonts.outfit(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
           Text(
             _currentWord.context,
             style: GoogleFonts.nunito(
               fontSize: 14,
-              color: YachayTheme.textMedium,
+              color: Colors.white.withValues(alpha: 0.9),
+              fontWeight: FontWeight.w600,
               height: 1.4,
             ),
             textAlign: TextAlign.center,
           ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              'Aymara 🔁 Español',
+              style: GoogleFonts.nunito(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ),
         ],
       ),
-    ).animate().fadeIn().scale(
-          begin: const Offset(0.95, 0.95),
-          end: const Offset(1, 1),
-          duration: 400.ms,
-        );
+    );
   }
 
   Widget _buildPronunciationGuide() {
@@ -309,6 +393,7 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
       decoration: BoxDecoration(
         color: YachayTheme.surfaceGold,
         borderRadius: YachayTheme.radiusSmall,
+        border: Border.all(color: YachayTheme.secondaryGold.withValues(alpha: 0.4), width: 1.5),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -319,7 +404,7 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
             'Pronunciación: ${_currentWord.pronunciationGuide}',
             style: GoogleFonts.nunito(
               fontSize: 15,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.bold,
               color: YachayTheme.textDark,
             ),
           ),
@@ -334,36 +419,51 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
       child: AnimatedBuilder(
         animation: _pulseController,
         builder: (context, child) {
-          final scale = _isRecording ? 1.0 + (_pulseController.value * 0.15) : 1.0;
-          return Transform.scale(
-            scale: scale,
-            child: Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: _isRecording
-                      ? [YachayTheme.errorPink, const Color(0xFFFF6B8A)]
-                      : [YachayTheme.aymaraColor, const Color(0xFFF59E0B)],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: (_isRecording
-                            ? YachayTheme.errorPink
-                            : YachayTheme.aymaraColor)
-                        .withValues(alpha: 0.3 + (_pulseController.value * 0.2)),
-                    blurRadius: 20 + (_pulseController.value * 15),
-                    spreadRadius: _pulseController.value * 5,
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              // Wave 1
+              if (_isRecording)
+                Container(
+                  width: 120 + (_pulseController.value * 50),
+                  height: 120 + (_pulseController.value * 50),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: YachayTheme.errorPink.withValues(alpha: 0.15 * (1.0 - _pulseController.value)),
                   ),
-                ],
+                ),
+              // Wave 2
+              if (_isRecording)
+                Container(
+                  width: 120 + (((_pulseController.value + 0.5) % 1.0) * 50),
+                  height: 120 + (((_pulseController.value + 0.5) % 1.0) * 50),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: YachayTheme.errorPink.withValues(alpha: 0.15 * (1.0 - ((_pulseController.value + 0.5) % 1.0))),
+                  ),
+                ),
+              // Main circular mic button with 3D press shadow
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: _isRecording
+                        ? [YachayTheme.errorPink, const Color(0xFFFF6B8A)]
+                        : [YachayTheme.aymaraColor, const Color(0xFFF59E0B)],
+                  ),
+                  boxShadow: YachayTheme.getButton3DShadow(
+                    _isRecording ? const Color(0xFFB91C1C) : const Color(0xFFC2410C),
+                  ),
+                ),
+                child: Icon(
+                  _isRecording ? Icons.mic_rounded : Icons.mic_none_rounded,
+                  color: Colors.white,
+                  size: 50,
+                ),
               ),
-              child: Icon(
-                _isRecording ? Icons.mic : Icons.mic_none_rounded,
-                color: Colors.white,
-                size: 50,
-              ),
-            ),
+            ],
           );
         },
       ),

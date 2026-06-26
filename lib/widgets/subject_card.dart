@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../config/theme.dart';
 import 'progress_ring.dart';
 
@@ -25,82 +26,97 @@ class SubjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final darkShade = Color.lerp(color, Colors.black, 0.25) ?? color;
+    final cardGradient = isLocked
+        ? LinearGradient(colors: [Colors.grey.shade300, Colors.grey.shade400])
+        : LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [color, darkShade],
+          );
+
     return GestureDetector(
       onTap: isLocked ? null : onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.all(20),
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: isLocked ? Colors.grey.shade100 : Colors.white,
+          gradient: cardGradient,
           borderRadius: YachayTheme.radiusLarge,
-          boxShadow: isLocked
-              ? []
-              : [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.15),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
           border: Border.all(
-            color: isLocked
-                ? Colors.grey.shade300
-                : color.withValues(alpha: 0.2),
+            color: isLocked ? Colors.grey.shade400 : color.withValues(alpha: 0.3),
             width: 2,
           ),
+          boxShadow: isLocked
+              ? []
+              : YachayTheme.getButton3DShadow(
+                  Color.lerp(color, Colors.black, 0.45) ?? Colors.black,
+                ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Progress ring with emoji center
+            // Progress ring with floating emoji center
             Stack(
               alignment: Alignment.center,
               children: [
                 ProgressRing(
                   progress: progress,
-                  size: 80,
+                  size: 76,
                   strokeWidth: 7,
-                  color: isLocked ? Colors.grey : color,
+                  color: isLocked ? Colors.grey : YachayTheme.secondaryGold,
+                  backgroundColor: Colors.white.withValues(alpha: 0.25),
                 ),
                 if (isLocked)
-                  Icon(Icons.lock_rounded,
-                      size: 30, color: Colors.grey.shade400)
+                  Icon(Icons.lock_rounded, size: 28, color: Colors.grey.shade600)
                 else
-                  Text(emoji,
-                      style: const TextStyle(fontSize: 34)),
+                  Text(
+                    emoji,
+                    style: const TextStyle(fontSize: 32),
+                  )
+                      .animate(onPlay: (c) => c.repeat(reverse: true))
+                      .slideY(begin: 0, end: -0.15, duration: 1.5.seconds, curve: Curves.easeInOut),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
+
             // Subject name
             Text(
               name,
-              style: TextStyle(
-                fontSize: 15,
+              style: GoogleFonts.outfit(
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: isLocked ? Colors.grey : YachayTheme.textDark,
+                color: isLocked ? Colors.grey.shade700 : Colors.white,
+                shadows: isLocked
+                    ? []
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.3),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
               ),
               textAlign: TextAlign.center,
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 6),
-            // Level indicator
+            const SizedBox(height: 8),
+
+            // Level indicator badge
             if (!isLocked)
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  progress >= 1.0
-                      ? '¡Completo! ⭐'
-                      : '${(progress * 100).round()}%',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: color,
+                  progress >= 1.0 ? '¡Completo! ⭐' : '${(progress * 100).round()}%',
+                  style: GoogleFonts.nunito(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
               ),

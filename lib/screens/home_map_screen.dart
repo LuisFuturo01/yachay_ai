@@ -69,87 +69,111 @@ class _HomeMapScreenState extends State<HomeMapScreen> {
         : MockAvatars.avatars.first;
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: YachayTheme.backgroundGradient),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // ─── Top Bar ───
-              _buildTopBar(profile, avatar),
+      body: Stack(
+        children: [
+          // Playful Background
+          Container(
+            decoration: const BoxDecoration(gradient: YachayTheme.playfulBackgroundGradient),
+          ),
 
-              // ─── Content ───
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 8),
-                      Text(
-                        '¿Qué quieres aprender hoy?',
-                        style: GoogleFonts.outfit(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: YachayTheme.textDark,
+          // Floating background objects
+          Positioned(
+            top: 120,
+            left: -20,
+            child: const Text('☁️', style: TextStyle(fontSize: 50))
+                .animate(onPlay: (c) => c.repeat(reverse: true))
+                .slideX(begin: 0, end: 0.1, duration: 9.seconds),
+          ),
+          Positioned(
+            top: 260,
+            right: -30,
+            child: const Text('☁️', style: TextStyle(fontSize: 60))
+                .animate(onPlay: (c) => c.repeat(reverse: true))
+                .slideX(begin: 0, end: -0.08, duration: 7.seconds),
+          ),
+
+          // Main contents
+          SafeArea(
+            child: Column(
+              children: [
+                // ─── Top Bar ───
+                _buildTopBar(profile, avatar),
+
+                // ─── Content ───
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 8),
+                        Text(
+                          '¿Qué quieres aprender hoy?',
+                          style: GoogleFonts.outfit(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: YachayTheme.textDark,
+                          ),
+                        ).animate().fadeIn().slideX(begin: -0.1),
+
+                        const SizedBox(height: 6),
+                        Text(
+                          'Elige una materia para comenzar 📚',
+                          style: GoogleFonts.nunito(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: YachayTheme.textMedium,
+                          ),
+                        ).animate().fadeIn(delay: 100.ms),
+
+                        const SizedBox(height: 20),
+
+                        // ─── Subject Grid ───
+                        GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 18,
+                            crossAxisSpacing: 18,
+                            childAspectRatio: 0.85,
+                          ),
+                          itemCount: _subjects.length,
+                          itemBuilder: (context, index) {
+                            final subject = _subjects[index];
+                            final currentLevel = ProgressService.instance
+                                .getSubjectProgress(subject.id);
+                            final totalLevels =
+                                TutorService.instance.getTotalLevels(subject.id);
+                            final progress = currentLevel / totalLevels;
+
+                            return SubjectCard(
+                              emoji: subject.emoji,
+                              name: subject.name,
+                              color: subject.color,
+                              colorLight: subject.colorLight,
+                              progress: progress,
+                              isLocked: false, // All subjects unlocked
+                              onTap: () => _navigateToSubject(subject, currentLevel),
+                            ).animate(delay: (index * 120).ms);
+                          },
                         ),
-                      ).animate().fadeIn().slideX(begin: -0.1),
 
-                      const SizedBox(height: 6),
-                      Text(
-                        'Elige una materia para comenzar 📚',
-                        style: GoogleFonts.nunito(
-                          fontSize: 15,
-                          color: YachayTheme.textMedium,
-                        ),
-                      ).animate().fadeIn(delay: 100.ms),
+                        const SizedBox(height: 24),
 
-                      const SizedBox(height: 20),
+                        // ─── Daily Tip Card ───
+                        _buildTipCard(),
 
-                      // ─── Subject Grid ───
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 16,
-                          crossAxisSpacing: 16,
-                          childAspectRatio: 0.85,
-                        ),
-                        itemCount: _subjects.length,
-                        itemBuilder: (context, index) {
-                          final subject = _subjects[index];
-                          final currentLevel = ProgressService.instance
-                              .getSubjectProgress(subject.id);
-                          final totalLevels =
-                              TutorService.instance.getTotalLevels(subject.id);
-                          final progress = currentLevel / totalLevels;
-
-                          return SubjectCard(
-                            emoji: subject.emoji,
-                            name: subject.name,
-                            color: subject.color,
-                            colorLight: subject.colorLight,
-                            progress: progress,
-                            isLocked: false, // All subjects unlocked
-                            onTap: () => _navigateToSubject(subject, currentLevel),
-                          ).animate(delay: (index * 120).ms);
-                        },
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // ─── Daily Tip Card ───
-                      _buildTipCard(),
-
-                      const SizedBox(height: 24),
-                    ],
+                        const SizedBox(height: 24),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+        ],
       ),
       bottomNavigationBar: _buildBottomNav(),
     );
@@ -249,20 +273,23 @@ class _HomeMapScreenState extends State<HomeMapScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            YachayTheme.primaryPurple.withValues(alpha: 0.08),
-            YachayTheme.secondaryGold.withValues(alpha: 0.05),
-          ],
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
         ),
         borderRadius: YachayTheme.radiusMedium,
         border: Border.all(
-          color: YachayTheme.primaryPurple.withValues(alpha: 0.1),
+          color: Colors.white.withValues(alpha: 0.4),
+          width: 2,
         ),
+        boxShadow: YachayTheme.getButton3DShadow(const Color(0xFF6D28D9)),
       ),
       child: Row(
         children: [
-          const Text('💡', style: TextStyle(fontSize: 32)),
+          const Text('💡', style: TextStyle(fontSize: 36))
+              .animate(onPlay: (c) => c.repeat(reverse: true))
+              .rotate(begin: -0.1, end: 0.1, duration: 1.seconds),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -271,17 +298,18 @@ class _HomeMapScreenState extends State<HomeMapScreen> {
                 Text(
                   '¿Sabías que...?',
                   style: GoogleFonts.outfit(
-                    fontSize: 16,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: YachayTheme.primaryPurple,
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Bolivia tiene 36 lenguas originarias. ¡El aymara es una de las más habladas!',
+                  'Bolivia tiene 36 lenguas originarias. ¡El aymara es una de las más habladas! 🗣️🇧🇴',
                   style: GoogleFonts.nunito(
-                    fontSize: 13,
-                    color: YachayTheme.textMedium,
+                    fontSize: 14,
+                    color: Colors.white.withValues(alpha: 0.95),
+                    fontWeight: FontWeight.bold,
                     height: 1.4,
                   ),
                 ),
