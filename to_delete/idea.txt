@@ -1,0 +1,380 @@
+Falta el nombreeee: Yachay AI¿?
+
+Una plataforma educativa inteligente que adapta el aprendizaje al idioma, nivel y contexto cultural del estudiante boliviano. 
+
+Educación inclusiva + IA personalizada + lenguas originarias 
+
+escuelas rurales
+estudiantes bilingües
+educación intercultural
+estudiantes con barreras de aprendizaje
+Problema:
+En Bolivia existen estudiantes que enfrentan barreras educativas por tres factores:
+1. Brecha de acceso
+Muchos estudiantes tienen acceso limitado a plataformas educativas digitales por conectividad o dispositivos.
+2. Brecha lingüística
+Niños que crecen hablando:
+aymara
+quechua
+español
+encuentran materiales principalmente en castellano.
+Entonces el problema no es falta de capacidad.
+Es que el contenido no está adaptado a su contexto.
+3. Falta de herramientas para docentes
+Un docente con muchos estudiantes necesita crear:
+ejercicios
+evaluaciones
+materiales personalizados
+pero hacerlo manualmente toma mucho tiempo.
+
+"¿Cómo aprende un niño si el contenido no habla su idioma ni entiende su realidad?"
+
+Público principal:
+👧 Estudiantes (5-12 años)
+Necesitan:
+aprender
+practicar
+recibir retroalimentación
+
+Público secundario:
+👩‍🏫 Docentes
+Son quienes usan la IA para crear contenido.
+
+Público beneficiario:
+👨‍👩‍👧 Padres
+Seguimiento del progreso.
+
+5. La app (flujo completo)
+Estudiante
+Inicio:
+Crea usuario:
+nombre
+código del docente
+personaje
+idioma:
+Inicialmente:
+español
+aymara
+Después:
+"¿Qué quieres aprender?"
+Materias:
+📚 Lenguaje
+ ➗ Matemática
+ 🌱 Ciencias Naturales
+ 🤟 Lengua de señas (obviar)
+
+Elige nivel:
+Nivel 1
+ Nivel 2
+ Nivel 3
+
+Hace actividades:
+Ejemplo:
+Matemática:
+¿Qué número viene después de 99?
+98
+100
+101
+97
+Comprobar/Verificar
+La app:
+✔ corrige
+✔ explica
+✔ adapta dificultad
+6. ¿Dónde está la IA? (lo importante)
+La IA estará en 4 partes:
+
+IA 1: Tutor educativo personalizado (Gemini)
+Esta es la estrella.
+La IA analiza:
+respuestas anteriores
+errores
+nivel del estudiante
+y adapta la enseñanza.
+Ejemplo:
+Un niño falla multiplicaciones.
+La IA dice:
+"No le mostraré multiplicación avanzada. Primero reforzaré suma repetida."
+Genera:
+explicación
+ejemplo
+ejercicio nuevo
+Tecnología: Gemini API
+
+IA 2: Generador de actividades para docentes
+El docente ingresa:
+Curso:
+	3ro primaria
+Materia:
+	Ciencias
+Tema:
+	Animales de Bolivia
+La IA genera:
+quiz
+sopa de letras
+preguntas
+actividades
+Con Gemini.
+
+IA 3: Asistente docente
+El profesor puede preguntar:
+"Necesito una evaluación para estudiantes de 8 años sobre plantas"
+La IA genera:
+preguntas
+rúbrica
+dificultad
+
+IA 4: Práctica de idioma originario
+El niño escucha una palabra en aymara.
+Ejemplo:
+"jallalla"
+El niño responde con voz.
+IA analiza:
+pronunciación
+similitud
+porcentaje
+Ejemplo:
+"Tu pronunciación tiene 85% de precisión"
+Tecnología: Speech-to-text / modelos de voz + Gemini
+
+7. Tecnologías Google (cómo justificar)
+Flutter
+App móvil.
+¿Por qué? Funciona en celulares económicos.
+
+Firebase
+Para:
+usuarios
+progreso
+notas
+mensajes
+notificaciones
+
+Gemini
+Para:
+generación de actividades
+tutor IA
+adaptación personalizada
+
+Google AI Studio
+Para probar prompts y modelos.
+
+Gemma (opcional)
+Aquí tienen una jugada buena:
+Modelo más ligero para funcionar en entornos con poca conectividad.
+
+
+
+
+
+
+
+
+Arquitectura general tentativa 
+
+                    👧 Estudiante
+                         |
+                         |
+                 Flutter App (Frontend)
+                         |
+        -----------------------------------
+        |                                 |
+        |                                 |
+ Firebase Backend                  Gemini AI Layer
+        |                                 |
+        |                                 |
+ Base de datos                  Generación inteligente
+ Usuarios                       Tutor IA
+ Progreso                       Quizzes
+ Notas                          Explicaciones
+ Actividades                    Adaptación
+ Mensajes                       Idiomas
+        |
+        |
+ Docentes / Padres
+
+
+Rol
+Qué hace
+Desglose de tareas
+👩‍💻 Frontend Developer (Flutter)
+Construye la aplicación que verá el usuario
+• Crear interfaz móvil en Flutter
+• Diseñar pantallas de estudiante, docente y padres
+• Crear navegación entre módulos
+• Implementar formularios (login, selección idioma, nivel, materia)
+• Mostrar actividades, preguntas y resultados• Integrar respuestas de Firebase y Gemini en la interfaz
+
+
+
+
+Pantallas estudiante:
+• Registro con nombre + código docente
+• Selección de personaje
+• Selección idioma (español/aymara)
+• Inicio con materias• Resolver ejercicios
+• Ver progreso
+
+
+
+
+Pantallas docente:
+• Crear actividades
+• Elegir curso, materia y nivel
+• Botón "Generar con IA"
+• Revisar calificaciones
+
+
+
+
+Pantallas padre:
+• Ver avance del estudiante
+• Notificaciones
+🔥 Backend Developer (Firebase)
+Maneja datos, usuarios y comunicación entre módulos
+• Configurar Firebase
+• Crear estructura de base de datos
+• Manejar autenticación
+• Guardar progreso y calificaciones
+• Gestionar usuarios (estudiante/docente/padre)
+• Conectar Flutter con Firebase
+
+
+
+
+Firebase Authentication:
+• Registro e inicio de sesión• Roles de usuario
+
+
+
+
+Firestore Database:
+Guardar:
+• Usuarios
+• Cursos
+• Actividades
+• Respuestas
+• Puntajes
+• Avances
+
+
+
+
+Ejemplo de datos:
+Estudiante → nivel → materias → resultados → dificultades
+🤖 IA Engineer / Integrador Gemini
+Implementa la inteligencia artificial del proyecto
+• Configurar conexión con Gemini API
+• Crear prompts efectivos
+• Definir cómo la IA responde
+• Integrar IA con Flutter/Firebase
+
+
+
+
+IA 1: Generador educativo
+Docente escribe:"Crear actividad de ciencias para 3ro primaria"IA genera:
+• preguntas
+• opciones
+• respuestas
+• dificultad
+
+
+
+
+IA 2: Tutor personalizado
+Analiza errores del estudiante y genera explicaciones adaptadas:"El estudiante falla sumas, explicar con ejemplos sencillos"
+
+
+
+
+IA 3: Adaptación de nivel
+Según resultados:
+• aumenta dificultad
+• refuerza temas débiles
+• crea nuevos ejercicios
+
+
+
+
+IA 4: Idioma originario
+Práctica de aymara:
+• reconocimiento de voz
+• comparación de pronunciación
+• porcentaje de precisión
+🧠 Producto / UX / Investigación / Pitch
+Une el problema, usuarios y presentación final
+• Definir experiencia del usuario
+• Crear historia del proyecto
+• Preparar pitch
+• Documentar problema y solución
+• Diseñar flujo de demo
+• Validar que la IA tenga sentido
+
+
+
+
+Investigación:
+• Problema educativo
+• Público objetivo
+• Impacto Bolivia
+
+
+
+
+UX:
+• Que sea simple para niños
+• Revisar lenguaje
+• Pensar accesibilidad
+
+
+
+
+Pitch:
+• Problema
+• Solución
+• Uso IA
+• Impacto
+• Demo
+EXTRA (si alcanza el tiempo)
+☁️ Google AI Studio (apoyo IA)
+Herramienta para probar y mejorar prompts
+• Probar instrucciones para Gemini• Ajustar respuestas• Crear prompts para niños y docentes
+☁️ Vertex AI (futuro)
+Escalabilidad del proyecto
+• Entrenamiento/gestión avanzada de modelos• Analítica más grande• Preparar despliegue empresarial
+📊 BigQuery (opcional)
+Analítica educativa
+• Reportes de aprendizaje• Estadísticas por curso• Detectar temas donde fallan estudiantes
+🧩 Gemma (opcional)
+Modelo ligero para escenarios con poca conexión
+• Futuro modo offline• IA más pequeña para dispositivos con pocos recursos
+
+
+
+
+Persona
+Rol 
+1
+Flutter + diseño app
+2
+Firebase + lógica + conexión APIs
+3
+Gemini + prompts + funcionalidades IA
+4
+UX + contenido educativo + pitch + apoyo donde falte
+
+
+                 Gemini API
+                     ▲
+                     |
+              IA educativa
+                     |
+                     |
+Usuario → Flutter → Firebase → Datos
+                     |
+                     |
+             Panel docente
+                     |
+             Analítica educativa
+

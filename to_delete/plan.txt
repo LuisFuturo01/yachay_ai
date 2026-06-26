@@ -1,0 +1,69 @@
+INFORME OPERATIVO DE DESAROLLO: MVP "YACHAY AI"
+Evento: Build with AI La Paz 2026
+Objetivo del Sprint: Desarrollar un Prototipo Funcional de alta calidad técnico-visual en <24 horas.
+👩‍💻 PERFIL 1: Frontend Core Developer (Flutter)
+Rol: Responsable de la Experiencia Visual y Flujo de Interfaz del Estudiante.
+Objetivo: Lograr que la aplicación se vea moderna, amigable para niños (5-12 años) y que corra con fluidez en dispositivos móviles.
+Desglose de Responsabilidades:
+Maquetación de Shell y Navegación:
+Diseñar la pantalla de Bienvenida/Login ficticio (un botón directo de "Entrar como Estudiante" para no perder tiempo validando formularios).
+Crear el menú principal con la selección de las dos materias de la demo: Matemática e Idioma Aymara.
+Desarrollo de la Pantalla "Tutor Matemático":
+Maquetar una interfaz tipo chat (burbujas de conversación estilo WhatsApp/Gemini).
+Diseñar la tarjeta superior con el ejercicio fijo: "¿Cuánto es 7 x 8?".
+Implementar un campo de texto y botón de envío para la respuesta del niño.
+Desarrollo de la Pantalla "Práctica Aymara":
+Diseñar una tarjeta visual atractiva con la palabra objetivo: "Jallalla".
+Dejar un contenedor central vacío preparado para recibir el "Botón de Micrófono" que programará el Dev 2.
+Diseñar el medidor visual (barra de progreso o círculo de porcentaje) para mostrar la precisión de pronunciación (ej. 85% de precisión).
+Regla de Oro para Dev 1: No esperes al backend. Trabaja hoy en la mañana con textos estáticos y datos falsos (Mock Data). La interfaz debe estar terminada visualmente antes de las 16:00.
+Puntos de Contacto: Se coordina con Dev 2 para incrustar el widget del micrófono y con Dev 4 para conectar los datos reales en la noche.
+👨‍💻 PERFIL 2: Audio & Voice Integration Engineer (Flutter + Cloud APIs)
+Rol: Especialista en Captura de Hardware e Interfaces de Voz.
+Objetivo: Resolver la entrada y salida de audio de la aplicación, eliminando la barrera del teclado para los niños bilingües.
+Desglose de Responsabilidades:
+Gestión de Hardware en Flutter:
+Implementar el manejo de permisos del sistema (permission_handler) para acceder al micrófono del smartphone.
+Programar el widget de grabación (presionar para hablar / soltar para enviar).
+Convertir el buffer de audio capturado a un formato estándar soportado por la nube (WAV o M4A en base64 o stream binario).
+Integración de Google Cloud Speech-to-Text:
+Configurar el cliente de la API de reconocimiento de voz.
+Enviar el audio del estudiante y recibir la transcripción en texto pura.
+Integración de Google Cloud Text-to-Speech:
+Tomar las respuestas generadas por la IA (Dev 3) y convertirlas en audio.
+Reproducir automáticamente la voz amigable del tutor dentro de la aplicación móvil cada vez que la IA responda un mensaje de matemáticas.
+Regla de Oro para Dev 2: El audio móvil suele dar problemas con los codificadores (encoders). Haz una prueba de concepto en un script aislado a primera hora antes de intentar meterlo al código de la app principal.
+Puntos de Contacto: Trabaja íntimamente pegado al Dev 1 en la UI de Aymara y le entrega los textos transcritos al Dev 3.
+🤖 PERFIL 3: AI Engineer & Prompt Architect (Vertex AI)
+Rol: Diseñador de la Inteligencia Cognitiva y Lógica Pedagógica.
+Objetivo: Hacer que Gemini deje de comportarse como un chat genérico y actúe estrictamente como un profesor de primaria paceño.
+Desglose de Responsabilidades:
+Arquitectura del "Tutor Socrático" (Matemáticas):
+Configurar el modelo gemini-1.5-pro o gemini-1.5-flash a través de la API de Vertex AI.
+Redactar un System Prompt estricto con directrices pedagógicas:"Eres Yachay, un tutor para niños bolivianos de 8 años. Si el usuario se equivoca en una multiplicación, TIENES PROHIBIDO darle la respuesta correcta. Debes guiarlo usando ejemplos de su contexto (contando salteñas, llamas o monedas de bolivianos). Sé extremadamente motivador."
+Ingeniería de Evaluación Fonética (Aymara):
+Pro-Tip Técnico: Aprovechar la capacidad multimodal nativa de Gemini en Vertex AI. En lugar de solo comparar texto, enviar el archivo de audio grabado por el niño directamente al modelo con el prompt:"Escucha este audio. El niño intenta decir la palabra en aymara 'Jallalla'. Evalúa su pronunciación y devuélveme ÚNICAMENTE un objeto JSON con este esquema exacto: {"precision_porcentaje": 85, "feedback_texto": "¡Muy bien! Solo marca un poco más la doble L."}".
+Control de Alucinaciones:
+Configurar la temperatura del modelo baja (temperature: 0.2) en el evaluador de idiomas para que los porcentajes matemáticos de precisión sean coherentes y no invente estructuras JSON rotas.
+Regla de Oro para Dev 3: Tu entregable principal no es código, son los esquemas JSON de respuesta y las instrucciones de comportamiento debidamente probadas en Google AI Studio antes del mediodía.
+Puntos de Contacto: Proveerá al Dev 4 las funciones listas para ser montadas en el servidor.
+☁️ PERFIL 4: Cloud Infrastructure, Data Lead & Pitch (GCP)
+Rol: Líder de Arquitectura Cloud, Analítica de Datos y Presentación Final.
+Objetivo: Blindar la infraestructura técnica para asegurar los 25 puntos de implementación, los 15 puntos de uso de IA y los 15 puntos de Pitch ante el jurado.
+Desglose de Responsabilidades:
+Administración de Google Cloud Platform (Mañana):
+Crear el proyecto en la consola de Google Cloud.
+Habilitar las APIs obligatorias: Vertex AI API, Cloud Speech-to-Text, Cloud Text-to-Speech, Cloud Run y BigQuery.
+Generar las cuentas de servicio (Service Accounts) y repartir de forma segura las credenciales al Dev 2 y Dev 3.
+Despliegue de Backend en Cloud Run (Tarde):
+Levantar un servidor express/FastAPI minúsculo que actúe como puente entre la app de Flutter y Vertex AI, evitando que las API Keys queden expuestas en el código del teléfono.
+Pipeline de Analítica Educativa en BigQuery (Tarde):
+Crear un Dataset llamado yachay_analytics.
+Crear una tabla registro_actividades con los campos: timestamp, materia, ejercicio, acierto_booleano, porcentaje_pronunciacion.
+Programar un endpoint que guarde cada intento del niño en esta tabla de BigQuery.
+Preparación del Defensa y Pitch (Noche):
+Redactar el discurso de 3 minutos exactos para mañana sábado.
+Preparar las respuestas justificando por qué usaron Flutter (bajo consumo de recursos) y cómo la analítica de BigQuery ayuda al Ministerio de Educación o profesores a detectar en qué temas fallan los alumnos bilingües.
+Plan Antifallos: Grabar un video de la aplicación funcionando al 100% en su teléfono para reproducirlo si el Wi-Fi de la Biblioteca Municipal colapsa mañana.
+Regla de Oro para Dev 4: Eres el escudo del equipo. Si la demo técnica falla mañana en vivo por culpa de la red, tu video de respaldo y tu argumentación sólida sobre la arquitectura en Cloud Run salvarán el proyecto.
+
