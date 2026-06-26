@@ -35,6 +35,7 @@ class ProfileAchievementsScreen extends StatelessWidget {
 
                 // ─── Top Bar ───
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     GestureDetector(
                       onTap: () => Navigator.pop(context),
@@ -46,21 +47,46 @@ class ProfileAchievementsScreen extends StatelessWidget {
                           shape: BoxShape.circle,
                           boxShadow: YachayTheme.cardShadow,
                         ),
-                        child:
-                            const Icon(Icons.arrow_back_rounded, size: 20),
+                        child: const Icon(Icons.arrow_back_rounded, size: 20),
                       ),
                     ),
-                    const Spacer(),
-                    Text(
-                      'Mi Perfil',
-                      style: GoogleFonts.outfit(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: YachayTheme.textDark,
+                    Expanded(
+                      child: Text(
+                        'Mi Perfil',
+                        style: GoogleFonts.outfit(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: YachayTheme.textDark,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
                     ),
-                    const Spacer(),
-                    const SizedBox(width: 40),
+                    GestureDetector(
+                      onTap: () async {
+                        await ProgressService.instance.resetProfile();
+                        if (context.mounted) {
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            '/login',
+                            (route) => false,
+                          );
+                        }
+                      },
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: YachayTheme.cardShadow,
+                        ),
+                        child: const Icon(
+                          Icons.logout_rounded,
+                          size: 20,
+                          color: YachayTheme.errorPink,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
 
@@ -116,6 +142,7 @@ class ProfileAchievementsScreen extends StatelessWidget {
                           color: Colors.white,
                         ),
                       ),
+                      const SizedBox(height: 6),
                       Text(
                         avatar.description,
                         style: GoogleFonts.nunito(
@@ -123,7 +150,7 @@ class ProfileAchievementsScreen extends StatelessWidget {
                           color: Colors.white.withValues(alpha: 0.7),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
 
                       // Points
                       Container(
@@ -305,7 +332,7 @@ class ProfileAchievementsScreen extends StatelessWidget {
         crossAxisCount: 4,
         mainAxisSpacing: 16,
         crossAxisSpacing: 12,
-        childAspectRatio: 0.7,
+        childAspectRatio: 0.6,
       ),
       itemCount: MockAchievements.achievements.length,
       itemBuilder: (context, index) {

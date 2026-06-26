@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'config/theme.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
-import 'screens/teacher_dashboard_screen.dart';
 import 'screens/avatar_selection_screen.dart';
 import 'screens/home_map_screen.dart';
 import 'screens/tutor_chat_screen.dart';
@@ -36,9 +35,6 @@ class YachayApp extends StatelessWidget {
 
       case '/login':
         return _buildPageRoute(const LoginScreen(), settings);
-
-      case '/teacher':
-        return _buildPageRoute(const TeacherDashboardScreen(), settings);
 
       case '/avatar':
         return _buildPageRoute(const AvatarSelectionScreen(), settings);

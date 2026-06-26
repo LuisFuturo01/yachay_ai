@@ -266,7 +266,7 @@ class _FeedbackVictoryScreenState extends State<FeedbackVictoryScreen> {
                       );
                     },
                     child: Container(
-                      height: 56,
+                      height: 50,
                       decoration: BoxDecoration(
                         color: YachayTheme.secondaryGold,
                         borderRadius: YachayTheme.radiusMedium,
@@ -274,44 +274,52 @@ class _FeedbackVictoryScreenState extends State<FeedbackVictoryScreen> {
                           const Color(0xFFC2410C),
                         ),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Volver al mapa',
-                            style: GoogleFonts.nunito(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: YachayTheme.textDark,
-                            ),
+                      child: Center(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Volver al mapa',
+                                style: GoogleFonts.nunito(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: YachayTheme.textDark,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Text('🗺️', style: TextStyle(fontSize: 18)),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          const Text('🗺️', style: TextStyle(fontSize: 20)),
-                        ],
+                        ),
                       ),
                     ),
                   ).animate().fadeIn(delay: 1200.ms).slideY(begin: 0.2),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 14),
 
                   GestureDetector(
                     onTap: () {
                       Navigator.pop(context);
                     },
                     child: Container(
-                      height: 56,
+                      height: 48,
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.15),
                         borderRadius: YachayTheme.radiusMedium,
                         border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 2),
                       ),
                       child: Center(
-                        child: Text(
-                          'Siguiente nivel ▶',
-                          style: GoogleFonts.nunito(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Siguiente nivel ▶',
+                            style: GoogleFonts.nunito(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),

@@ -28,7 +28,11 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   void _navigateNext() {
-    Navigator.pushReplacementNamed(context, '/login');
+    if (ProgressService.instance.hasProfile) {
+      Navigator.pushReplacementNamed(context, '/home');
+    } else {
+      Navigator.pushReplacementNamed(context, '/login');
+    }
   }
 
   @override

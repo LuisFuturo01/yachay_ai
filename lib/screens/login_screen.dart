@@ -26,19 +26,6 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _autocomplete(String role) {
-    setState(() {
-      _errorMessage = null;
-      if (role == 'student') {
-        _usernameController.text = 'estudiante';
-        _passwordController.text = '1234';
-      } else {
-        _usernameController.text = 'docente';
-        _passwordController.text = '1234';
-      }
-    });
-  }
-
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -48,13 +35,12 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 1200));
+    await Future.delayed(const Duration(milliseconds: 1000));
 
     final username = _usernameController.text.trim().toLowerCase();
     final password = _passwordController.text.trim();
 
     if (username == 'estudiante' && password == '1234') {
-      // Logged in as student
       await ProgressService.instance.loadProfile();
       if (mounted) {
         setState(() => _isLoading = false);
@@ -64,17 +50,11 @@ class _LoginScreenState extends State<LoginScreen> {
           Navigator.pushReplacementNamed(context, '/avatar');
         }
       }
-    } else if (username == 'docente' && password == '1234') {
-      // Logged in as teacher
-      if (mounted) {
-        setState(() => _isLoading = false);
-        Navigator.pushReplacementNamed(context, '/teacher');
-      }
     } else {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage = '🔑 ¡Ups! Credenciales incorrectas.\nIntenta con estudiante/1234 o docente/1234';
+          _errorMessage = '🔑 ¡Ups! Credenciales incorrectas.\nIntenta con estudiante / 1234 o toca Crear Cuenta.';
         });
       }
     }
@@ -82,6 +62,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
       body: Stack(
         children: [
@@ -96,76 +78,61 @@ class _LoginScreenState extends State<LoginScreen> {
 
           // ─── Floating Decorative Objects ───
           Positioned(
-            top: 60,
-            left: -40,
-            child: const Text('☁️', style: TextStyle(fontSize: 80))
-                .animate(onPlay: (c) => c.repeat(reverse: true))
-                .slideX(begin: 0, end: 0.15, duration: 8.seconds, curve: Curves.easeInOut)
-                .fadeIn(duration: 1.seconds),
-          ),
-          Positioned(
-            top: 150,
-            right: -30,
+            top: 40,
+            left: -30,
             child: const Text('☁️', style: TextStyle(fontSize: 60))
                 .animate(onPlay: (c) => c.repeat(reverse: true))
-                .slideX(begin: 0, end: -0.12, duration: 6.seconds, curve: Curves.easeInOut)
+                .slideX(begin: 0, end: 0.1, duration: 8.seconds, curve: Curves.easeInOut)
                 .fadeIn(duration: 1.seconds),
           ),
           Positioned(
-            bottom: 80,
-            left: 20,
-            child: const Text('✨', style: TextStyle(fontSize: 32))
+            top: 120,
+            right: -25,
+            child: const Text('☁️', style: TextStyle(fontSize: 50))
                 .animate(onPlay: (c) => c.repeat(reverse: true))
-                .scale(begin: const Offset(0.8, 0.8), end: const Offset(1.3, 1.3), duration: 2.seconds)
-                .rotate(begin: 0, end: 0.2, duration: 3.seconds),
-          ),
-          Positioned(
-            bottom: 120,
-            right: 40,
-            child: const Text('🎈', style: TextStyle(fontSize: 48))
-                .animate(onPlay: (c) => c.repeat(reverse: true))
-                .slideY(begin: 0, end: -0.2, duration: 4.seconds, curve: Curves.easeInOut),
+                .slideX(begin: 0, end: -0.08, duration: 6.seconds, curve: Curves.easeInOut)
+                .fadeIn(duration: 1.seconds),
           ),
 
           // ─── Main Content ───
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Mascot/Logo Icon
+                    // Mascot Icon
                     Container(
-                      width: 100,
-                      height: 100,
+                      width: 90,
+                      height: 90,
                       decoration: BoxDecoration(
                         gradient: YachayTheme.mathGradient,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: YachayTheme.primaryPurple.withValues(alpha: 0.3),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
+                            color: YachayTheme.primaryPurple.withValues(alpha: 0.25),
+                            blurRadius: 16,
+                            offset: const Offset(0, 8),
                           ),
                         ],
                       ),
                       child: const Center(
-                        child: Text('🧠', style: TextStyle(fontSize: 50)),
+                        child: Text('🧠', style: TextStyle(fontSize: 44)),
                       ),
                     ).animate(onPlay: (c) => c.repeat(reverse: true)).scale(
                       begin: const Offset(1, 1),
-                      end: const Offset(1.08, 1.08),
+                      end: const Offset(1.06, 1.06),
                       duration: 1.seconds,
                       curve: Curves.easeInOut,
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
 
                     Text(
                       'Yachay AI',
                       style: GoogleFonts.outfit(
-                        fontSize: 36,
+                        fontSize: 34,
                         fontWeight: FontWeight.w800,
                         color: YachayTheme.textDark,
                         letterSpacing: -0.5,
@@ -175,19 +142,20 @@ class _LoginScreenState extends State<LoginScreen> {
                     Text(
                       'Aventura Educativa Inteligente 🚀',
                       style: GoogleFonts.nunito(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.bold,
                         color: YachayTheme.primaryPurple,
                       ),
                     ),
 
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 20),
 
                     // Login Card
                     Container(
-                      padding: const EdgeInsets.all(24),
+                      width: size.width > 400 ? 380 : double.infinity,
+                      padding: const EdgeInsets.all(22),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.9),
+                        color: Colors.white.withValues(alpha: 0.92),
                         borderRadius: YachayTheme.radiusLarge,
                         border: Border.all(
                           color: YachayTheme.primaryPurple.withValues(alpha: 0.15),
@@ -201,31 +169,31 @@ class _LoginScreenState extends State<LoginScreen> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Text(
-                              'Iniciar Sesión',
+                              'Ingresar al Aula',
                               style: GoogleFonts.outfit(
-                                fontSize: 22,
+                                fontSize: 20,
                                 fontWeight: FontWeight.bold,
                                 color: YachayTheme.textDark,
                               ),
                               textAlign: TextAlign.center,
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 14),
 
                             // Error message
                             if (_errorMessage != null)
                               Container(
-                                padding: const EdgeInsets.all(12),
-                                margin: const EdgeInsets.only(bottom: 16),
+                                padding: const EdgeInsets.all(10),
+                                margin: const EdgeInsets.only(bottom: 12),
                                 decoration: BoxDecoration(
                                   color: YachayTheme.errorPinkLight,
                                   borderRadius: YachayTheme.radiusSmall,
-                                  border: Border.all(color: YachayTheme.errorPink.withValues(alpha: 0.3)),
+                                  border: Border.all(color: YachayTheme.errorPink.withValues(alpha: 0.25)),
                                 ),
                                 child: Text(
                                   _errorMessage!,
                                   style: GoogleFonts.nunito(
                                     color: YachayTheme.errorPink,
-                                    fontSize: 13,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                   ),
                                   textAlign: TextAlign.center,
@@ -235,11 +203,12 @@ class _LoginScreenState extends State<LoginScreen> {
                             // Username
                             TextFormField(
                               controller: _usernameController,
-                              style: GoogleFonts.nunito(fontSize: 16, fontWeight: FontWeight.w600),
+                              style: GoogleFonts.nunito(fontSize: 15, fontWeight: FontWeight.w600),
                               decoration: InputDecoration(
-                                hintText: 'Ingresa tu usuario',
+                                hintText: 'Usuario o Nombre',
                                 labelText: 'Usuario',
-                                prefixIcon: const Icon(Icons.person_rounded, color: YachayTheme.primaryPurple),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                prefixIcon: const Icon(Icons.person_rounded, size: 20, color: YachayTheme.primaryPurple),
                                 border: OutlineInputBorder(
                                   borderRadius: YachayTheme.radiusSmall,
                                 ),
@@ -251,21 +220,23 @@ class _LoginScreenState extends State<LoginScreen> {
                                 return null;
                               },
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 12),
 
                             // Password
                             TextFormField(
                               controller: _passwordController,
                               obscureText: _obscurePassword,
-                              style: GoogleFonts.nunito(fontSize: 16, fontWeight: FontWeight.w600),
+                              style: GoogleFonts.nunito(fontSize: 15, fontWeight: FontWeight.w600),
                               decoration: InputDecoration(
-                                hintText: 'Ingresa tu contraseña',
+                                hintText: 'Contraseña',
                                 labelText: 'Contraseña',
-                                prefixIcon: const Icon(Icons.lock_rounded, color: YachayTheme.primaryPurple),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                prefixIcon: const Icon(Icons.lock_rounded, size: 20, color: YachayTheme.primaryPurple),
                                 suffixIcon: IconButton(
                                   icon: Icon(
                                     _obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
                                     color: YachayTheme.textMedium,
+                                    size: 20,
                                   ),
                                   onPressed: () {
                                     setState(() => _obscurePassword = !_obscurePassword);
@@ -282,13 +253,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                 return null;
                               },
                             ),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: 20),
 
-                            // Log In Button (3D styling)
+                            // Log In Button (3D style)
                             GestureDetector(
                               onTap: _isLoading ? null : _login,
                               child: Container(
-                                height: 54,
+                                height: 50,
                                 decoration: BoxDecoration(
                                   gradient: YachayTheme.primaryGradient,
                                   borderRadius: YachayTheme.radiusMedium,
@@ -297,92 +268,84 @@ class _LoginScreenState extends State<LoginScreen> {
                                 child: Center(
                                   child: _isLoading
                                       ? const SizedBox(
-                                          width: 24,
-                                          height: 24,
+                                          width: 20,
+                                          height: 20,
                                           child: CircularProgressIndicator(
                                             color: Colors.white,
-                                            strokeWidth: 3,
+                                            strokeWidth: 2.5,
                                           ),
                                         )
-                                      : Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              '¡Entrar a Jugar!',
-                                              style: GoogleFonts.nunito(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
+                                      : FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                '¡Entrar a Jugar!',
+                                                style: GoogleFonts.nunito(
+                                                  fontSize: 17,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.white,
+                                                ),
                                               ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            const Text('⭐', style: TextStyle(fontSize: 18)),
-                                          ],
+                                              const SizedBox(width: 8),
+                                              const Text('⭐', style: TextStyle(fontSize: 16)),
+                                            ],
+                                          ),
                                         ),
                                 ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 14),
+
+                            // Create Account button (3D Outline style)
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.pushNamed(context, '/avatar');
+                              },
+                              child: Container(
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: YachayTheme.radiusMedium,
+                                  border: Border.all(color: YachayTheme.primaryPurple, width: 2),
+                                  boxShadow: YachayTheme.getButton3DShadow(YachayTheme.surfacePurple),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    'Crear Cuenta 🎭',
+                                    style: GoogleFonts.nunito(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: YachayTheme.primaryPurple,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 12),
+
+                            // Testing Tip (Responsive scale)
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                '🔑 Cuenta Demo: estudiante / 1234',
+                                style: GoogleFonts.nunito(
+                                  fontSize: 13,
+                                  color: YachayTheme.textMedium,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
+                    ).animate().fadeIn(delay: 150.ms).slideY(begin: 0.1),
 
-                    const SizedBox(height: 24),
-
-                    // Demo shortcuts text
-                    Text(
-                      'Accesos rápidos para evaluación:',
-                      style: GoogleFonts.nunito(
-                        fontSize: 14,
-                        color: YachayTheme.textMedium,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    // Shortcuts row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ElevatedButton.icon(
-                          onPressed: () => _autocomplete('student'),
-                          icon: const Text('👧'),
-                          label: Text(
-                            'Estudiante',
-                            style: GoogleFonts.nunito(fontSize: 13, fontWeight: FontWeight.bold),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: YachayTheme.surfacePurple,
-                            foregroundColor: YachayTheme.primaryPurple,
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: YachayTheme.radiusSmall,
-                              side: const BorderSide(color: YachayTheme.primaryPurpleLight, width: 1.5),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        ElevatedButton.icon(
-                          onPressed: () => _autocomplete('teacher'),
-                          icon: const Text('👩‍🏫'),
-                          label: Text(
-                            'Docente',
-                            style: GoogleFonts.nunito(fontSize: 13, fontWeight: FontWeight.bold),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: YachayTheme.surfaceGold,
-                            foregroundColor: YachayTheme.warningOrange,
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: YachayTheme.radiusSmall,
-                              side: const BorderSide(color: YachayTheme.secondaryGold, width: 1.5),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ).animate().fadeIn(delay: 400.ms),
-
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),

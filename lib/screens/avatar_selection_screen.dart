@@ -17,6 +17,16 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
   String? _selectedAvatarId;
   bool _isLoading = false;
 
+  @override
+  void initState() {
+    super.initState();
+    final profile = ProgressService.instance.currentProfile;
+    if (profile != null) {
+      _nameController.text = profile.name;
+      _selectedAvatarId = profile.avatarId;
+    }
+  }
+
   bool get _isValid =>
       _nameController.text.trim().isNotEmpty && _selectedAvatarId != null;
 
@@ -202,7 +212,7 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
                     child: GestureDetector(
                       onTap: _isValid && !_isLoading ? _createProfile : null,
                       child: Container(
-                        height: 56,
+                        height: 50,
                         width: double.infinity,
                         decoration: BoxDecoration(
                           color: _isValid ? YachayTheme.primaryPurple : Colors.grey.shade400,
@@ -214,27 +224,30 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
                         child: Center(
                           child: _isLoading
                               ? const SizedBox(
-                                  width: 24,
-                                  height: 24,
+                                  width: 20,
+                                  height: 20,
                                   child: CircularProgressIndicator(
                                     color: Colors.white,
-                                    strokeWidth: 3,
+                                    strokeWidth: 2.5,
                                   ),
                                 )
-                              : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      '¡Listo, vamos!',
-                                      style: GoogleFonts.nunito(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
+                              : FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        '¡Listo, vamos!',
+                                        style: GoogleFonts.nunito(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    const Text('🚀', style: TextStyle(fontSize: 20)),
-                                  ],
+                                      const SizedBox(width: 8),
+                                      const Text('🚀', style: TextStyle(fontSize: 18)),
+                                    ],
+                                  ),
                                 ),
                         ),
                       ),

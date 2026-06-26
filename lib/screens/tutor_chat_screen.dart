@@ -530,7 +530,7 @@ class _TutorChatScreenState extends State<TutorChatScreen> {
     // Normal Check Button Container
     if (!_checked) {
       return Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: Colors.white,
           border: Border(
@@ -541,7 +541,7 @@ class _TutorChatScreenState extends State<TutorChatScreen> {
           onTap: hasSelection ? _checkAnswer : null,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            height: 56,
+            height: 50,
             decoration: BoxDecoration(
               color: hasSelection ? themeColor : Colors.grey.shade300,
               borderRadius: YachayTheme.radiusMedium,
@@ -550,13 +550,16 @@ class _TutorChatScreenState extends State<TutorChatScreen> {
                   : [],
             ),
             child: Center(
-              child: Text(
-                'COMPROBAR',
-                style: GoogleFonts.outfit(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: hasSelection ? Colors.white : Colors.grey.shade500,
-                  letterSpacing: 1.1,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  'COMPROBAR',
+                  style: GoogleFonts.outfit(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: hasSelection ? Colors.white : Colors.grey.shade500,
+                    letterSpacing: 1.1,
+                  ),
                 ),
               ),
             ),
@@ -590,7 +593,7 @@ class _TutorChatScreenState extends State<TutorChatScreen> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         color: feedbackBg,
         borderRadius: const BorderRadius.only(
@@ -620,34 +623,34 @@ class _TutorChatScreenState extends State<TutorChatScreen> {
                         ? Icons.lightbulb_rounded
                         : Icons.cancel_rounded,
                 color: feedbackBorder,
-                size: 32,
+                size: 28,
               ),
               const SizedBox(width: 10),
               Text(
                 feedbackTitle,
                 style: GoogleFonts.outfit(
-                  fontSize: 22,
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: feedbackText,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Text(
             feedbackDesc,
             style: GoogleFonts.nunito(
-              fontSize: 15,
+              fontSize: 14,
               fontWeight: FontWeight.bold,
               color: YachayTheme.textDark,
-              height: 1.4,
+              height: 1.3,
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           GestureDetector(
             onTap: _continueNext,
             child: Container(
-              height: 56,
+              height: 50,
               decoration: BoxDecoration(
                 color: feedbackBorder,
                 borderRadius: YachayTheme.radiusMedium,
@@ -656,13 +659,16 @@ class _TutorChatScreenState extends State<TutorChatScreen> {
                 ),
               ),
               child: Center(
-                child: Text(
-                  buttonText,
-                  style: GoogleFonts.outfit(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 1,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    buttonText,
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 1,
+                    ),
                   ),
                 ),
               ),
