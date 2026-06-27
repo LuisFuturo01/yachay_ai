@@ -438,10 +438,9 @@ $jsonPrompt
     );
 
     if (responseMap == null) {
-      final errorDetail = lastApiError != null ? '\n\n($lastApiError)' : '';
-      return TutorResponse(
+      return const TutorResponse(
         isCorrect: false,
-        message: 'Yachay no pudo responder en este momento. ¡Pruébalo otra vez! 🦙$errorDetail',
+        message: 'Yachay no puede responder en este momento. Conexión a internet lenta, ¡inténtalo de nuevo! 🦙',
         type: ResponseType.hint,
       );
     }
@@ -487,9 +486,9 @@ $jsonPrompt
 
     } catch (e) {
       debugPrint('❌ Error parsing Socratic JSON response: $e');
-      return TutorResponse(
+      return const TutorResponse(
         isCorrect: false,
-        message: '¡Buen intento! Pero no pudimos procesar la respuesta. Inténtalo de nuevo. 😊',
+        message: 'Conexión a internet lenta, ¡inténtalo de nuevo! 🦙',
         type: ResponseType.hint,
       );
     }
@@ -665,10 +664,9 @@ $jsonPrompt
     );
 
     if (responseMap == null) {
-      final errorDetail = lastApiError != null ? '\n\n($lastApiError)' : '';
-      return AymaraPronunciationResult(
+      return const AymaraPronunciationResult(
         precision: 50,
-        feedback: 'No pudimos evaluar tu pronunciación. ¡Inténtalo de nuevo! 🦙$errorDetail',
+        feedback: 'Conexión a internet lenta, ¡inténtalo de nuevo! 🦙',
         isGood: false,
       );
     }
@@ -720,7 +718,7 @@ $jsonPrompt
       debugPrint('❌ Error parsing Aymara Socratic response: $e');
       return const AymaraPronunciationResult(
         precision: 60,
-        feedback: '¡Buen intento! Pero hubo un problema al evaluar. Inténtalo otra vez. 😊',
+        feedback: 'Conexión a internet lenta, ¡inténtalo de nuevo! 🦙',
         isGood: false,
       );
     }
