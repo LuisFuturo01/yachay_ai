@@ -9,7 +9,6 @@ import 'package:path_provider/path_provider.dart';
 /// Uses flutter_tts for speaking words aloud, the record package
 /// for capturing audio from the device microphone, and audioplayers
 /// to play back the captured voice for verification.
-
 class VoiceService {
   // ─── Singleton ───
   VoiceService._();
@@ -120,19 +119,17 @@ class VoiceService {
     }
 
     try {
-      // Configure recording: AAC LC format (extremely compatible on Android, iOS, and Web)
+      // Configure recording: WAV format (highly compatible)
       const config = RecordConfig(
-        encoder: AudioEncoder.aacLc,
+        encoder: AudioEncoder.wav,
         sampleRate: 16000,
         numChannels: 1,
-        bitRate: 128000,
       );
 
       String recordPath = '';
       if (!kIsWeb) {
         final tempDir = await getTemporaryDirectory();
-        // Enforce a specific .m4a extension and use timestamp to prevent audioplayer caching bugs
-        recordPath = '${tempDir.path}/yachay_voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+        recordPath = '${tempDir.path}/yachay_voice_${DateTime.now().millisecondsSinceEpoch}.wav';
       }
 
       // Start recording
@@ -203,7 +200,6 @@ class VoiceService {
   Future<void> reproducirAudio(String path) async {
     _initAudioPlayer();
     try {
-      // Stop any ongoing speech or playback first
       await pararDeHablar();
       await detenerReproduccion();
 

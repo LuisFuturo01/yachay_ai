@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 class UserProfile {
+  final String uid;
   final String name;
   final String avatarId;
   final Map<String, int> subjectProgress; // subject key -> current level (0-based)
@@ -8,6 +9,7 @@ class UserProfile {
   int totalPoints;
 
   UserProfile({
+    required this.uid,
     required this.name,
     required this.avatarId,
     Map<String, int>? subjectProgress,
@@ -39,6 +41,7 @@ class UserProfile {
 
   // ─── Serialization (for SharedPreferences / future Firebase) ───
   Map<String, dynamic> toJson() => {
+    'uid': uid,
     'name': name,
     'avatarId': avatarId,
     'subjectProgress': subjectProgress,
@@ -47,6 +50,7 @@ class UserProfile {
   };
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
+    uid: json['uid'] as String? ?? 'user_${DateTime.now().millisecondsSinceEpoch}',
     name: json['name'] as String,
     avatarId: json['avatarId'] as String,
     subjectProgress: Map<String, int>.from(json['subjectProgress'] as Map),

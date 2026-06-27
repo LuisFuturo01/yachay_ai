@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Esta aplicación necesita acceder al micrófono para grabar la pronunciación de las palabras en Aymara del estudiante.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Esta aplicación requiere reconocimiento de voz para convertir tu audio de voz a texto y evaluar tu pronunciación localmente.</string>
 </dict>
 </plist>

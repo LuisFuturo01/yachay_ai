@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/theme.dart';
 import '../services/progress_service.dart';
+import '../services/firestore_service.dart';
 
 class FeedbackVictoryScreen extends StatefulWidget {
   final String subjectId;
@@ -44,6 +45,22 @@ class _FeedbackVictoryScreenState extends State<FeedbackVictoryScreen> {
       widget.subjectId,
       widget.pointsEarned,
     );
+
+    // Save game session to Firestore
+    final profile = ProgressService.instance.currentProfile;
+    if (profile != null) {
+      final sessionId = 'sess_${widget.subjectId}_L${widget.level}_${DateTime.now().millisecondsSinceEpoch}';
+      FirestoreService.instance.registrarSesionJuego(
+        userId: profile.uid,
+        sessionId: sessionId,
+        subjectId: widget.subjectId,
+        level: widget.level,
+        status: 'completed',
+        correctAnswers: widget.correctAnswers,
+        totalQuestions: widget.totalQuestions,
+        pointsEarned: widget.pointsEarned,
+      );
+    }
 
     // Check for achievements
     if (widget.correctAnswers == widget.totalQuestions) {

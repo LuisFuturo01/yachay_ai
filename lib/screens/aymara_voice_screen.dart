@@ -153,14 +153,11 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
       _isVerified = true;
     });
 
-    // TODO: When backend API is ready (Dev 3/4), send _recordedFilePath
-    // to the pronunciation evaluation endpoint instead of mock.
-    // Example: final result = await ApiService.evaluatePronunciation(_recordedFilePath!, _currentWord.word);
-
-    // For now, use mock pronunciation result
+    // Call the tutor service to evaluate pronunciation using the recorded audio file path
     final result = await TutorService.instance.evaluatePronunciation(
       level: widget.level,
       wordIndex: _currentWordIndex,
+      audioPath: _recordedFilePath,
     );
 
     if (!mounted) return;

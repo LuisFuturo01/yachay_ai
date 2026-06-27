@@ -14,15 +14,12 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
   bool _isLoading = false;
   String? _errorMessage;
 
   @override
   void dispose() {
     _usernameController.dispose();
-    _passwordController.dispose();
     super.dispose();
   }
 
@@ -34,27 +31,25 @@ class _LoginScreenState extends State<LoginScreen> {
       _errorMessage = null;
     });
 
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 1000));
+    final username = _usernameController.text.trim();
 
-    final username = _usernameController.text.trim().toLowerCase();
-    final password = _passwordController.text.trim();
+    // Call the new obtain-or-create Firestore logic
+    final result = await ProgressService.instance.loginUser(username);
 
-    if (username == 'estudiante' && password == '1234') {
-      await ProgressService.instance.loadProfile();
-      if (mounted) {
-        setState(() => _isLoading = false);
-        if (ProgressService.instance.hasProfile) {
+    if (mounted) {
+      setState(() => _isLoading = false);
+      
+      if (result['success'] == true) {
+        if (result['isNew'] == false) {
+          // Existing student -> log in and go home directly!
           Navigator.pushReplacementNamed(context, '/home');
         } else {
+          // New student -> go to avatar selection to choose a companion
           Navigator.pushReplacementNamed(context, '/avatar');
         }
-      }
-    } else {
-      if (mounted) {
+      } else {
         setState(() {
-          _isLoading = false;
-          _errorMessage = '🔑 ¡Ups! Credenciales incorrectas.\nIntenta con estudiante / 1234 o toca Crear Cuenta.';
+          _errorMessage = result['message'] as String? ?? 'Ocurrió un error al ingresar.';
         });
       }
     }
@@ -192,8 +187,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               controller: _usernameController,
                               style: GoogleFonts.nunito(fontSize: 15, fontWeight: FontWeight.w600),
                               decoration: InputDecoration(
-                                hintText: 'Usuario o Nombre',
-                                labelText: 'Usuario',
+                                hintText: 'Escribe tu usuario o nombre',
+                                labelText: 'Usuario / Nombre',
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                 prefixIcon: const Icon(Icons.person_rounded, size: 20, color: YachayTheme.primaryPurple),
                                 border: OutlineInputBorder(
@@ -203,39 +198,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
                                   return 'Por favor ingresa tu usuario';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 12),
-
-                            // Password
-                            TextFormField(
-                              controller: _passwordController,
-                              obscureText: _obscurePassword,
-                              style: GoogleFonts.nunito(fontSize: 15, fontWeight: FontWeight.w600),
-                              decoration: InputDecoration(
-                                hintText: 'Contraseña',
-                                labelText: 'Contraseña',
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                prefixIcon: const Icon(Icons.lock_rounded, size: 20, color: YachayTheme.primaryPurple),
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                                    color: YachayTheme.textMedium,
-                                    size: 20,
-                                  ),
-                                  onPressed: () {
-                                    setState(() => _obscurePassword = !_obscurePassword);
-                                  },
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: YachayTheme.radiusSmall,
-                                ),
-                              ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Por favor ingresa tu contraseña';
                                 }
                                 return null;
                               },
@@ -318,7 +280,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             FittedBox(
                               fit: BoxFit.scaleDown,
                               child: Text(
-                                '🔑 Cuenta Demo: estudiante / 1234',
+                                '💡 Escribe tu nombre para iniciar sesión o crear una cuenta',
                                 style: GoogleFonts.nunito(
                                   fontSize: 13,
                                   color: YachayTheme.textMedium,
