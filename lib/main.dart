@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'config/theme.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
@@ -9,8 +10,13 @@ import 'screens/aymara_voice_screen.dart';
 import 'screens/feedback_victory_screen.dart';
 import 'screens/profile_achievements_screen.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    debugPrint("⚠️ Warning: Could not load .env file: $e");
+  }
   runApp(const YachayApp());
 }
 

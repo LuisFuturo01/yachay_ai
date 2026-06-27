@@ -28,7 +28,8 @@ class TutorChatScreen extends StatefulWidget {
 
 class _TutorChatScreenState extends State<TutorChatScreen> {
   final TutorService _tutor = TutorService.instance;
-  late Lesson _lesson;
+  Lesson? _lesson;
+  bool _loadingLesson = true;
 
   int _currentQuestionIndex = 0;
   int _currentHintIndex = 0;
@@ -40,56 +41,126 @@ class _TutorChatScreenState extends State<TutorChatScreen> {
   int? _selectedOptionIndex;
   bool _checked = false;
 
+  // Dynamic evaluation states
+  bool _evaluatingAnswer = false;
+  String? _tutorFeedback;
+  bool _isCurrentAnswerCorrect = false;
+
   // Particle explosion trigger
   bool _triggerExplosion = false;
 
   @override
   void initState() {
     super.initState();
-    _lesson = _tutor.getLesson(widget.subjectId, widget.level);
+    _loadLesson();
+  }
+
+  Future<void> _loadLesson() async {
+    setState(() {
+      _loadingLesson = true;
+    });
+    try {
+      final lesson = await _tutor.generateLesson(widget.subjectId, widget.level);
+      if (mounted) {
+        setState(() {
+          _lesson = lesson;
+          _loadingLesson = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _lesson = _tutor.getLesson(widget.subjectId, widget.level);
+          _loadingLesson = false;
+        });
+      }
+    }
   }
 
   void _onOptionTap(int index) {
-    if (_checked) return; // Cannot change selection once checked
+    if (_checked || _evaluatingAnswer) return; // Cannot change selection once checked or evaluating
     setState(() {
       _selectedOptionIndex = index;
     });
   }
 
-  void _checkAnswer() {
-    if (_selectedOptionIndex == null || _checked) return;
+  Future<void> _checkAnswer() async {
+    if (_selectedOptionIndex == null || _checked || _evaluatingAnswer || _lesson == null) return;
 
-    final question = _lesson.questions[_currentQuestionIndex];
+    final question = _lesson!.questions[_currentQuestionIndex];
     final selectedAnswer = question.options![_selectedOptionIndex!];
-    final isCorrect = selectedAnswer == question.correctAnswer;
 
     setState(() {
-      _checked = true;
-      _totalAttemptsForQuestion++;
+      _evaluatingAnswer = true;
     });
 
-    if (isCorrect) {
-      setState(() {
-        _tutorState = TutorState.happy;
-        _correctAnswers++;
-        _triggerExplosion = true;
-      });
-      // Reset explosion state after a short delay
-      Future.delayed(const Duration(milliseconds: 1500), () {
-        if (mounted) setState(() => _triggerExplosion = false);
-      });
-    } else {
-      setState(() {
-        _currentHintIndex++;
-        _tutorState = TutorState.thinking;
-      });
+    try {
+      final response = await _tutor.evaluateAnswer(
+        subjectId: widget.subjectId,
+        level: widget.level,
+        questionIndex: _currentQuestionIndex,
+        userAnswer: selectedAnswer,
+      );
+
+      if (mounted) {
+        setState(() {
+          _checked = true;
+          _totalAttemptsForQuestion++;
+          _isCurrentAnswerCorrect = response.isCorrect;
+          _tutorFeedback = response.message;
+          _evaluatingAnswer = false;
+        });
+
+        if (response.isCorrect) {
+          setState(() {
+            _tutorState = TutorState.happy;
+            _correctAnswers++;
+            _triggerExplosion = true;
+          });
+          // Reset explosion state after a short delay
+          Future.delayed(const Duration(milliseconds: 1500), () {
+            if (mounted) setState(() => _triggerExplosion = false);
+          });
+        } else {
+          setState(() {
+            _currentHintIndex++;
+            _tutorState = TutorState.thinking;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        // Fallback local comparison if API fails completely
+        final isCorrect = selectedAnswer == question.correctAnswer;
+        setState(() {
+          _checked = true;
+          _totalAttemptsForQuestion++;
+          _isCurrentAnswerCorrect = isCorrect;
+          _tutorFeedback = isCorrect ? '¡Excelente trabajo! ¡Respuesta correcta!' : '¡Inténtalo de nuevo!';
+          _evaluatingAnswer = false;
+          
+          if (isCorrect) {
+            _tutorState = TutorState.happy;
+            _correctAnswers++;
+            _triggerExplosion = true;
+          } else {
+            _currentHintIndex++;
+            _tutorState = TutorState.thinking;
+          }
+        });
+        
+        if (isCorrect) {
+          Future.delayed(const Duration(milliseconds: 1500), () {
+            if (mounted) setState(() => _triggerExplosion = false);
+          });
+        }
+      }
     }
   }
 
   void _continueNext() {
-    final question = _lesson.questions[_currentQuestionIndex];
-    final selectedAnswer = question.options![_selectedOptionIndex!];
-    final isCorrect = selectedAnswer == question.correctAnswer;
+    if (_lesson == null) return;
+    final isCorrect = _isCurrentAnswerCorrect;
 
     if (isCorrect || _currentHintIndex >= 3) {
       // Move to next question
@@ -100,9 +171,10 @@ class _TutorChatScreenState extends State<TutorChatScreen> {
         _currentHintIndex = 0;
         _totalAttemptsForQuestion = 0;
         _tutorState = TutorState.idle;
+        _tutorFeedback = null;
       });
 
-      if (_currentQuestionIndex >= _lesson.questions.length) {
+      if (_currentQuestionIndex >= _lesson!.questions.length) {
         _onLessonComplete();
       }
     } else {
@@ -111,11 +183,13 @@ class _TutorChatScreenState extends State<TutorChatScreen> {
         _checked = false;
         _selectedOptionIndex = null;
         _tutorState = TutorState.idle;
+        _tutorFeedback = null;
       });
     }
   }
 
   void _onLessonComplete() {
+    if (_lesson == null) return;
     setState(() {
       _tutorState = TutorState.celebrating;
     });
@@ -131,8 +205,8 @@ class _TutorChatScreenState extends State<TutorChatScreen> {
             'subjectEmoji': widget.subjectEmoji,
             'level': widget.level,
             'correctAnswers': _correctAnswers,
-            'totalQuestions': _lesson.questions.length,
-            'pointsEarned': _lesson.pointsReward,
+            'totalQuestions': _lesson!.questions.length,
+            'pointsEarned': _lesson!.pointsReward,
           },
         );
       }
@@ -206,7 +280,39 @@ class _TutorChatScreenState extends State<TutorChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_currentQuestionIndex >= _lesson.questions.length) {
+    if (_loadingLesson || _lesson == null) {
+      return Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(gradient: YachayTheme.playfulBackgroundGradient),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const AnimatedTutorAvatar(
+                  emoji: '🦙',
+                  state: TutorState.thinking,
+                  size: 100,
+                ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 1.5.seconds),
+                const SizedBox(height: 24),
+                Text(
+                  '¡Yachay está preparando tu lección mágica! ✨',
+                  style: GoogleFonts.outfit(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: YachayTheme.primaryPurple,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                const CircularProgressIndicator(color: YachayTheme.primaryPurple),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (_currentQuestionIndex >= _lesson!.questions.length) {
       return Scaffold(
         body: Container(
           decoration: const BoxDecoration(gradient: YachayTheme.playfulBackgroundGradient),
@@ -217,12 +323,12 @@ class _TutorChatScreenState extends State<TutorChatScreen> {
       );
     }
 
-    final question = _lesson.questions[_currentQuestionIndex];
-    final progress = _currentQuestionIndex / _lesson.questions.length;
+    final question = _lesson!.questions[_currentQuestionIndex];
+    final progress = _currentQuestionIndex / _lesson!.questions.length;
     final themeColor = widget.subjectColor;
 
     // Evaluate response parameters
-    final isCorrect = _checked && question.options![_selectedOptionIndex!] == question.correctAnswer;
+    final isCorrect = _checked && _isCurrentAnswerCorrect;
     final isTryAgain = _checked && !isCorrect && _currentHintIndex < 3;
     final isFailFinal = _checked && !isCorrect && _currentHintIndex >= 3;
 
@@ -257,7 +363,7 @@ class _TutorChatScreenState extends State<TutorChatScreen> {
                 // ─── Quiz Area ───
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -296,6 +402,7 @@ class _TutorChatScreenState extends State<TutorChatScreen> {
   }
 
   Widget _buildHeader(double progress, Color color) {
+    if (_lesson == null) return const SizedBox();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
@@ -359,7 +466,7 @@ class _TutorChatScreenState extends State<TutorChatScreen> {
 
           // Level Indicator text
           Text(
-            '${_currentQuestionIndex + 1}/${_lesson.questions.length}',
+            '${_currentQuestionIndex + 1}/${_lesson!.questions.length}',
             style: GoogleFonts.outfit(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -373,7 +480,11 @@ class _TutorChatScreenState extends State<TutorChatScreen> {
 
   Widget _buildTutorBanner(Question question) {
     String tutorSpeech = '¡Hola! Ayúdame a resolver esta pregunta.';
-    if (_tutorState == TutorState.happy) {
+    if (_evaluatingAnswer) {
+      tutorSpeech = 'Dejame pensar... 🤔';
+    } else if (_tutorFeedback != null) {
+      tutorSpeech = _tutorFeedback!;
+    } else if (_tutorState == TutorState.happy) {
       tutorSpeech = '¡Fantástico! ¡Respuesta correcta! 🌟';
     } else if (_tutorState == TutorState.thinking) {
       if (question.hints.isNotEmpty) {
@@ -561,7 +672,7 @@ class _TutorChatScreenState extends State<TutorChatScreen> {
           ),
         ),
         child: GestureDetector(
-          onTap: hasSelection ? _checkAnswer : null,
+          onTap: (hasSelection && !_evaluatingAnswer) ? _checkAnswer : null,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             height: 50,
@@ -573,18 +684,24 @@ class _TutorChatScreenState extends State<TutorChatScreen> {
                   : [],
             ),
             child: Center(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  'COMPROBAR',
-                  style: GoogleFonts.outfit(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: hasSelection ? Colors.white : Colors.grey.shade500,
-                    letterSpacing: 1.1,
-                  ),
-                ),
-              ),
+              child: _evaluatingAnswer
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                    )
+                  : FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'COMPROBAR',
+                        style: GoogleFonts.outfit(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: hasSelection ? Colors.white : Colors.grey.shade500,
+                          letterSpacing: 1.1,
+                        ),
+                      ),
+                    ),
             ),
           ),
         ),
@@ -596,7 +713,7 @@ class _TutorChatScreenState extends State<TutorChatScreen> {
     Color feedbackBorder = YachayTheme.successGreen;
     Color feedbackText = YachayTheme.successGreen;
     String feedbackTitle = '¡Excelente! 🎉';
-    String feedbackDesc = question.explanation;
+    String feedbackDesc = _tutorFeedback ?? question.explanation;
     String buttonText = 'CONTINUAR';
 
     if (isTryAgain) {
@@ -604,14 +721,14 @@ class _TutorChatScreenState extends State<TutorChatScreen> {
       feedbackBorder = YachayTheme.secondaryGold;
       feedbackText = YachayTheme.accentTerracotta;
       feedbackTitle = '¡Casi! 💡 Pista';
-      feedbackDesc = question.hints[(_currentHintIndex - 1).clamp(0, question.hints.length - 1)];
+      feedbackDesc = _tutorFeedback ?? question.hints[(_currentHintIndex - 1).clamp(0, question.hints.length - 1)];
       buttonText = 'INTENTAR DE NUEVO';
     } else if (isFailFinal) {
       feedbackBg = YachayTheme.errorPinkLight;
       feedbackBorder = YachayTheme.errorPink;
       feedbackText = YachayTheme.errorPink;
       feedbackTitle = '¡Incorrecto! 😢';
-      feedbackDesc = 'La respuesta correcta es: ${question.correctAnswer}.\n\n${question.explanation}';
+      feedbackDesc = _tutorFeedback ?? 'La respuesta correcta es: ${question.correctAnswer}.\n\n${question.explanation}';
       buttonText = 'CONTINUAR';
     }
 

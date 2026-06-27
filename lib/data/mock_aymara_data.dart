@@ -20,6 +20,18 @@ class AymaraWord {
     this.emoji = '🗣️',
     this.ttsHint,
   });
+
+  factory AymaraWord.fromGeminiJson(Map<String, dynamic> json) {
+    final contenido = json['contenido'] as Map<String, dynamic>? ?? json;
+    return AymaraWord(
+      word: (contenido['palabra'] ?? '').toString(),
+      translation: (contenido['significado'] ?? contenido['traduccion'] ?? '').toString(),
+      pronunciationGuide: (contenido['guia_pronunciacion'] ?? contenido['pronunciacion'] ?? contenido['instruccion'] ?? '').toString(),
+      context: (contenido['contexto'] ?? contenido['context'] ?? contenido['categoria'] ?? 'Vocabulario').toString(),
+      emoji: (contenido['emoji'] ?? '🗣️').toString(),
+      ttsHint: (contenido['texto_audio'] ?? contenido['tts_hint'] ?? contenido['palabra'] ?? '').toString(),
+    );
+  }
 }
 
 class AymaraLesson {
@@ -40,6 +52,32 @@ class AymaraLesson {
     required this.words,
     this.pointsReward = 50,
   });
+
+  factory AymaraLesson.fromGeminiJson(Map<String, dynamic> json, int level) {
+    final wordsList = <AymaraWord>[];
+    
+    if (json['palabras'] != null) {
+      final list = json['palabras'] as List;
+      for (final item in list) {
+        if (item is Map<String, dynamic>) {
+          wordsList.add(AymaraWord.fromGeminiJson(item));
+        }
+      }
+    } else {
+      // Fallback: single word parsed from root/contenido
+      wordsList.add(AymaraWord.fromGeminiJson(json));
+    }
+
+    return AymaraLesson(
+      id: 'aymara_${level}_dynamic',
+      level: level,
+      title: json['titulo'] as String? ?? 'Aymara Dinámico',
+      description: json['mensaje'] as String? ?? '¡Vamos a pronunciar!',
+      emoji: json['metadata']?['emoji'] as String? ?? '🗣️',
+      words: wordsList,
+      pointsReward: (json['metadata']?['puntos'] as num?)?.toInt() ?? 50,
+    );
+  }
 }
 
 class MockAymaraData {

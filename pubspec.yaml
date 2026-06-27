@@ -17,6 +17,7 @@ dependencies:
   audioplayers: ^6.0.0
   path_provider: ^2.1.2
   http: ^1.2.0
+  flutter_dotenv: ^5.1.0
 
 dev_dependencies:
   flutter_test:
@@ -27,6 +28,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - .env
     - web/favicon.png
     - Prompt_Library/01_System_Prompt/
     - Prompt_Library/02_Matematica/

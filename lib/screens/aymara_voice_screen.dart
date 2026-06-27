@@ -6,6 +6,7 @@ import '../data/mock_aymara_data.dart';
 import '../services/tutor_service.dart';
 import '../services/voice_service.dart';
 import '../widgets/progress_ring.dart';
+import '../widgets/animated_tutor_avatar.dart';
 
 class AymaraVoiceScreen extends StatefulWidget {
   final int level;
@@ -18,7 +19,8 @@ class AymaraVoiceScreen extends StatefulWidget {
 
 class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
     with SingleTickerProviderStateMixin {
-  late AymaraLesson _lesson;
+  AymaraLesson? _lesson;
+  bool _loadingLesson = true;
   int _currentWordIndex = 0;
   bool _isRecording = false;
   bool _showResult = false;
@@ -34,12 +36,34 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
   @override
   void initState() {
     super.initState();
-    _lesson = MockAymaraData.getLesson(widget.level);
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     );
-    _initVoice();
+    _loadLessonAndVoice();
+  }
+
+  Future<void> _loadLessonAndVoice() async {
+    setState(() {
+      _loadingLesson = true;
+    });
+    try {
+      final lesson = await TutorService.instance.generateAymaraLesson(widget.level);
+      if (mounted) {
+        setState(() {
+          _lesson = lesson;
+          _loadingLesson = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _lesson = MockAymaraData.getLesson(widget.level);
+          _loadingLesson = false;
+        });
+      }
+    }
+    await _initVoice();
   }
 
   Future<void> _initVoice() async {
@@ -59,6 +83,7 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
   }
 
   Future<void> _speakCurrentWord() async {
+    if (_lesson == null) return;
     // Use the phonetic ttsHint for correct pronunciation,
     // fall back to the raw word if no hint is set.
     final textToSpeak = _currentWord.ttsHint ?? _currentWord.word;
@@ -75,7 +100,7 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
     super.dispose();
   }
 
-  AymaraWord get _currentWord => _lesson.words[_currentWordIndex];
+  AymaraWord get _currentWord => _lesson!.words[_currentWordIndex];
 
   Future<void> _startRecording() async {
     // Stop any TTS or playback that might be playing
@@ -171,12 +196,13 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
   }
 
   void _nextWord() {
+    if (_lesson == null) return;
     setState(() {
       _wordsCompleted++;
       _isFlipped = false; // Reset card flip
       _recordedFilePath = null;
       _isVerified = false;
-      if (_currentWordIndex < _lesson.words.length - 1) {
+      if (_currentWordIndex < _lesson!.words.length - 1) {
         _currentWordIndex++;
         _showResult = false;
         // Speak the next word automatically
@@ -193,9 +219,9 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
             'subjectName': 'Idioma Aymara',
             'subjectEmoji': '🗣️',
             'level': widget.level,
-            'correctAnswers': _wordsCompleted + 1,
-            'totalQuestions': _lesson.words.length,
-            'pointsEarned': _lesson.pointsReward,
+            'correctAnswers': _wordsCompleted,
+            'totalQuestions': _lesson!.words.length,
+            'pointsEarned': _lesson!.pointsReward,
           },
         );
       }
@@ -204,7 +230,39 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
 
   @override
   Widget build(BuildContext context) {
-    final progress = (_currentWordIndex + 1) / _lesson.words.length;
+    if (_loadingLesson || _lesson == null) {
+      return Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(gradient: YachayTheme.backgroundGradient),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AnimatedTutorAvatar(
+                  emoji: '🗣️',
+                  state: TutorState.thinking,
+                  size: 100,
+                ).animate(onPlay: (c) => c.repeat()).shimmer(duration: 1.5.seconds),
+                const SizedBox(height: 24),
+                Text(
+                  '¡Yachay está preparando tu lección de Aymara! 🗣️✨',
+                  style: GoogleFonts.outfit(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: YachayTheme.primaryPurple,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                const CircularProgressIndicator(color: YachayTheme.primaryPurple),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final progress = (_currentWordIndex + 1) / _lesson!.words.length;
 
     return Scaffold(
       body: Container(
@@ -284,6 +342,7 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
   }
 
   Widget _buildTopBar(double progress) {
+    if (_lesson == null) return const SizedBox();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
@@ -307,7 +366,7 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '🗣️ ${_lesson.title}',
+                  '🗣️ ${_lesson!.title}',
                   style: GoogleFonts.outfit(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -331,7 +390,7 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
           ),
           const SizedBox(width: 12),
           Text(
-            '${_currentWordIndex + 1}/${_lesson.words.length}',
+            '${_currentWordIndex + 1}/${_lesson!.words.length}',
             style: GoogleFonts.outfit(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -849,7 +908,7 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
           ),
         ),
         child: Text(
-          _currentWordIndex < _lesson.words.length - 1
+          _currentWordIndex < _lesson!.words.length - 1
               ? 'Siguiente palabra ▶'
               : '¡Completar lección! 🎉',
           style: GoogleFonts.nunito(

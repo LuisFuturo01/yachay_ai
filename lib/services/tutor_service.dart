@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import '../data/mock_math_data.dart';
 import '../data/mock_science_data.dart';
@@ -21,9 +22,23 @@ class TutorService {
 
   static String? lastApiError;
 
-  // Gemini API Key from environment configuration
+  // Gemini API Key fallback from environment configuration
   static const String _geminiApiKey = 'AQ.Ab8RN6IhJh3ZF48KzGAA6_Q-IQG46TPxiKZ7R2jQPr-dFl6X2Q';
-  static const String _geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+
+  // Cache of dynamically generated lessons
+  final Map<String, Lesson> _dynamicLessons = {};
+  
+  // Cache of dynamically generated Aymara lessons
+  final Map<int, AymaraLesson> _dynamicAymaraLessons = {};
+
+  // Resolve API Key dynamically from environment
+  String get _apiKey {
+    try {
+      final key = dotenv.env['GEMINI_API_KEY'];
+      if (key != null && key.isNotEmpty) return key;
+    } catch (_) {}
+    return _geminiApiKey;
+  }
 
   // ─── Get Lesson Data ───
 
@@ -42,6 +57,225 @@ class TutorService {
 
   AymaraLesson getAymaraLesson(int level) {
     return MockAymaraData.getLesson(level);
+  }
+
+  // ─── Dynamic Lesson Generation with Gemini ───
+
+  Future<Lesson> generateLesson(String subjectId, int level) async {
+    final cacheKey = '${subjectId}_$level';
+    if (_dynamicLessons.containsKey(cacheKey)) {
+      return _dynamicLessons[cacheKey]!;
+    }
+
+    final fallbackLesson = getLesson(subjectId, level);
+
+    try {
+      final int age = 6 + level;
+      final String grade = '${level + 1}ro de Primaria';
+      final String theme = fallbackLesson.title;
+
+      final systemPrompt = await _loadPrompt('Prompt_Library/01_System_Prompt/01_System_Prompt.md');
+      
+      String subjectPrompt = '';
+      String jsonPrompt = '';
+
+      if (subjectId == 'math') {
+        subjectPrompt = await _loadPrompt('Prompt_Library/02_Matematica/MAT-01_Generacion_Ejercicios.md');
+        jsonPrompt = await _loadPrompt('Prompt_Library/06_JSON/JSON-01_Matematica.md');
+      } else if (subjectId == 'science') {
+        subjectPrompt = await _loadPrompt('Prompt_Library/04_Ciencias_Naturales/NAT-01_Generacion_Ejercicios.md');
+        jsonPrompt = await _loadPrompt('Prompt_Library/06_JSON/JSON-03_Ciencias_Naturales.md');
+      } else if (subjectId == 'social') {
+        subjectPrompt = await _loadPrompt('Prompt_Library/05_Cs_Sociales/SOC-01_Generacion_Ejercicios.md');
+        jsonPrompt = await _loadPrompt('Prompt_Library/06_JSON/JSON-04_Ciencias_Sociales.md');
+      }
+
+      final instruccionCompleta = """
+$systemPrompt
+
+REGLAS DE TAREA ESPECÍFICAS:
+$subjectPrompt
+
+REGLAS DE FORMATO JSON:
+$jsonPrompt
+
+ADVERTENCIA IMPORTANTE PARA GENERACIÓN DE SESIÓN COMPLETA:
+Debes generar una lección completa que consta de exactamente 3 preguntas diferentes basadas en el tema especificado.
+Debes responder con un único objeto JSON que contenga los siguientes campos en la raíz:
+{
+  "tipo": "ejercicio",
+  "titulo": "Título de la Lección (adecuado para niños)",
+  "mensaje": "Mensaje motivador de bienvenida de Yachay para el niño",
+  "preguntas": [
+    {
+      "enunciado": "Enunciado amigable de la Pregunta 1 con contexto boliviano.",
+      "opciones": ["Opción A", "Opción B", "Opción C", "Opción D"],
+      "respuesta_correcta": "La opción correcta exacta (debe coincidir textualmente con una de las opciones)",
+      "pistas": [
+        "Pista 1 amigable...",
+        "Pista 2 progresiva..."
+      ],
+      "explicacion": "Breve explicación de por qué es la correcta."
+    },
+    {
+      "enunciado": "Enunciado amigable de la Pregunta 2 con contexto boliviano.",
+      "opciones": ["Opción A", "Opción B", "Opción C", "Opción D"],
+      "respuesta_correcta": "La opción correcta exacta (debe coincidir textualmente con una de las opciones)",
+      "pistas": [
+        "Pista 1 amigable...",
+        "Pista 2 progresiva..."
+      ],
+      "explicacion": "Breve explicación de por qué es la correcta."
+    },
+    {
+      "enunciado": "Enunciado amigable de la Pregunta 3 con contexto boliviano.",
+      "opciones": ["Opción A", "Opción B", "Opción C", "Opción D"],
+      "respuesta_correcta": "La opción correcta exacta (debe coincidir textualmente con una de las opciones)",
+      "pistas": [
+        "Pista 1 amigable...",
+        "Pista 2 progresiva..."
+      ],
+      "explicacion": "Breve explicación de por qué es la correcta."
+    }
+  ],
+  "metadata": {
+    "tema": "$theme",
+    "nivel": "${level < 2 ? 'Básico' : (level < 4 ? 'Intermedio' : 'Avanzado')}",
+    "emoji": "${fallbackLesson.emoji}",
+    "puntos": ${fallbackLesson.pointsReward}
+  }
+}
+Responde únicamente con el JSON crudo, sin markdown, bloques de código, ni texto adicional.
+""";
+
+      final promptText = jsonEncode({
+        'edad': '$age años',
+        'grado': grade,
+        'materia': subjectId == 'math' ? 'Matemática' : (subjectId == 'science' ? 'Ciencias Naturales' : 'Ciencias Sociales'),
+        'tema': theme,
+        'nivel': level < 2 ? 'Básico' : (level < 4 ? 'Intermedio' : 'Avanzado'),
+      });
+
+      final responseMap = await _callGemini(
+        instruction: instruccionCompleta,
+        prompt: promptText,
+      );
+
+      if (responseMap != null && responseMap.containsKey('preguntas')) {
+        final lesson = Lesson.fromGeminiJson(responseMap, subjectId, level);
+        _dynamicLessons[cacheKey] = lesson;
+        debugPrint('🎉 Dynamic lesson successfully generated for $cacheKey!');
+        return lesson;
+      } else {
+        debugPrint('⚠️ Response from Gemini was not in standard list format, trying fallback.');
+      }
+    } catch (e) {
+      debugPrint('❌ Error generating dynamic lesson: $e');
+    }
+
+    // Fallback to static mock lesson
+    return fallbackLesson;
+  }
+
+  Future<AymaraLesson> generateAymaraLesson(int level) async {
+    if (_dynamicAymaraLessons.containsKey(level)) {
+      return _dynamicAymaraLessons[level]!;
+    }
+
+    final fallbackLesson = MockAymaraData.getLesson(level);
+
+    try {
+      final String category = fallbackLesson.title.split('(').last.replaceAll(')', '');
+      final String levelName = level < 2 ? 'Básico' : (level < 4 ? 'Intermedio' : 'Avanzado');
+      
+      final systemPrompt = await _loadPrompt('Prompt_Library/01_System_Prompt/01_System_Prompt.md');
+      final aymaraPrompt = await _loadPrompt('Prompt_Library/03_Aymara/AYM-01_Generacion_Audios.md');
+      final jsonPrompt = await _loadPrompt('Prompt_Library/06_JSON/JSON-02_Aymara.md');
+
+      final instruccionCompleta = """
+$systemPrompt
+
+REGLAS DE TAREA ESPECÍFICAS:
+$aymaraPrompt
+
+REGLAS DE FORMATO JSON:
+$jsonPrompt
+
+ADVERTENCIA IMPORTANTE PARA GENERACIÓN DE SESIÓN COMPLETA:
+Debes generar una lección completa de Aymara que consta de exactamente 4 palabras/frases diferentes de la categoría solicitada.
+Debes responder con un único objeto JSON que contenga los siguientes campos en la raíz:
+{
+  "titulo": "Título de la lección de Aymara",
+  "mensaje": "Mensaje de bienvenida",
+  "palabras": [
+    {
+      "palabra": "Palabra o frase en Aymara (ej. Kamisaki)",
+      "significado": "Significado en Español (ej. ¿Cómo estás?)",
+      "guia_pronunciacion": "Guía silábica de pronunciación (ej. ka-mi-SA-ki)",
+      "contexto": "Breve explicación de cuándo se usa",
+      "emoji": "Emoji descriptivo",
+      "texto_audio": "Texto exacto en Aymara simplificado para que la síntesis de voz (TTS) española lo lea lo más cercano posible al Aymara real (ej. kamisaki)"
+    },
+    {
+      "palabra": "Segunda palabra o frase en Aymara",
+      "significado": "Significado en Español",
+      "guia_pronunciacion": "Guía silábica de pronunciación",
+      "contexto": "Breve explicación de cuándo se usa",
+      "emoji": "Emoji descriptivo",
+      "texto_audio": "Texto exacto para síntesis de voz"
+    },
+    {
+      "palabra": "Tercera palabra o frase en Aymara",
+      "significado": "Significado en Español",
+      "guia_pronunciacion": "Guía silábica de pronunciación",
+      "contexto": "Breve explicación de cuándo se usa",
+      "emoji": "Emoji descriptivo",
+      "texto_audio": "Texto exacto para síntesis de voz"
+    },
+    {
+      "palabra": "Cuarta palabra o frase en Aymara",
+      "significado": "Significado en Español",
+      "guia_pronunciacion": "Guía silábica de pronunciación",
+      "contexto": "Breve explicación de cuándo se usa",
+      "emoji": "Emoji descriptivo",
+      "texto_audio": "Texto exacto para síntesis de voz"
+    }
+  ],
+  "metadata": {
+    "categoria": "$category",
+    "nivel": "$levelName",
+    "emoji": "${fallbackLesson.emoji}",
+    "puntos": ${fallbackLesson.pointsReward}
+  }
+}
+Responde únicamente con el JSON crudo, sin markdown, bloques de código, ni texto adicional.
+""";
+
+      final promptText = jsonEncode({
+        'edad': '${6 + level} años',
+        'nivel': levelName,
+        'categoria': category,
+      });
+
+      final responseMap = await _callGemini(
+        instruction: instruccionCompleta,
+        prompt: promptText,
+      );
+
+      if (responseMap != null && responseMap.containsKey('palabras')) {
+        final lesson = AymaraLesson.fromGeminiJson(responseMap, level);
+        _dynamicAymaraLessons[level] = lesson;
+        debugPrint('🎉 Dynamic Aymara lesson successfully generated for level $level!');
+        return lesson;
+      } else {
+        debugPrint('⚠️ Response from Gemini was not in standard Aymara list format, trying fallback.');
+      }
+    } catch (e) {
+      debugPrint('❌ Error generating dynamic Aymara lesson: $e');
+    }
+
+    // Fallback to static mock lesson
+    return fallbackLesson;
   }
 
   // ─── Get Total Levels ───
@@ -80,13 +314,13 @@ class TutorService {
   }) async {
     // List of models to try in case of model-not-found or regional restrictions
     final models = [
-      'gemini-1.5-flash',
-      'gemini-1.5-flash-latest',
       'gemini-2.0-flash',
+      'gemini-2.0-flash-lite',
+      'gemini-2.5-flash-preview-05-20',
     ];
 
     for (final model in models) {
-      final url = Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$_geminiApiKey');
+      final url = Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$_apiKey');
       
       final payload = {
         'system_instruction': {
@@ -182,7 +416,7 @@ $subjectPrompt
 $jsonPrompt
 """;
 
-    final lesson = getLesson(subjectId, level);
+    final lesson = _dynamicLessons['${subjectId}_$level'] ?? getLesson(subjectId, level);
     final questionText = lesson.questions[questionIndex].question;
     final expectedAnswer = lesson.questions[questionIndex].correctAnswer;
 
@@ -262,7 +496,7 @@ $jsonPrompt
   // ─── Get Additional Hint ───
 
   String getHint(String subjectId, int level, int questionIndex, int hintIndex) {
-    final lesson = getLesson(subjectId, level);
+    final lesson = _dynamicLessons['${subjectId}_$level'] ?? getLesson(subjectId, level);
     if (questionIndex >= lesson.questions.length) return 'No hay más pistas.';
     
     final hints = lesson.questions[questionIndex].hints;
@@ -303,13 +537,13 @@ $jsonPrompt
 
       // List of models to try in case of model-not-found or regional restrictions
       final models = [
-        'gemini-1.5-flash',
-        'gemini-1.5-flash-latest',
         'gemini-2.0-flash',
+        'gemini-2.0-flash-lite',
+        'gemini-2.5-flash-preview-05-20',
       ];
 
       for (final model in models) {
-        final url = Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$_geminiApiKey');
+        final url = Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$_apiKey');
         
         final payload = {
           'contents': [
@@ -379,7 +613,7 @@ $jsonPrompt
     required int wordIndex,
     String? audioPath,
   }) async {
-    final lesson = MockAymaraData.getLesson(level);
+    final lesson = _dynamicAymaraLessons[level] ?? getAymaraLesson(level);
     final targetWord = lesson.words[wordIndex].word;
     final pronunciationGuide = lesson.words[wordIndex].pronunciationGuide;
 
