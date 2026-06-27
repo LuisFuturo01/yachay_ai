@@ -7,6 +7,10 @@ class AymaraWord {
   final String pronunciationGuide;
   final String context;
   final String emoji;
+  /// Phonetic hint for TTS engine — spelled so Spanish TTS reads it
+  /// as close to real Aymara pronunciation as possible.
+  /// Falls back to [word] if null.
+  final String? ttsHint;
 
   const AymaraWord({
     required this.word,
@@ -14,6 +18,7 @@ class AymaraWord {
     required this.pronunciationGuide,
     required this.context,
     this.emoji = '🗣️',
+    this.ttsHint,
   });
 }
 
@@ -56,6 +61,7 @@ class MockAymaraData {
           pronunciationGuide: 'ka-mi-SA-ki',
           context: 'Se usa para saludar a alguien, como un "hola, ¿cómo estás?"',
           emoji: '👋',
+          ttsHint: 'kamisaki',
         ),
         AymaraWord(
           word: 'Waliki',
@@ -63,6 +69,7 @@ class MockAymaraData {
           pronunciationGuide: 'wa-LI-ki',
           context: 'Es la respuesta cuando alguien te dice "Kamisaki"',
           emoji: '😊',
+          ttsHint: 'waliki',
         ),
         AymaraWord(
           word: 'Jallalla',
@@ -70,6 +77,7 @@ class MockAymaraData {
           pronunciationGuide: 'ja-LLA-lla',
           context: 'Se usa para celebrar algo. ¡Como gritar de alegría!',
           emoji: '🎉',
+          ttsHint: 'jayaya',
         ),
         AymaraWord(
           word: 'Jikisiñkama',
@@ -77,6 +85,7 @@ class MockAymaraData {
           pronunciationGuide: 'ji-ki-SI-ña-ka-ma',
           context: 'Se usa para despedirse de alguien',
           emoji: '👋',
+          ttsHint: 'jikisiniakama',
         ),
       ],
     ),
@@ -96,6 +105,7 @@ class MockAymaraData {
           pronunciationGuide: 'MA-ya',
           context: 'El número 1. Maya es también "primero"',
           emoji: '1️⃣',
+          ttsHint: 'maya',
         ),
         AymaraWord(
           word: 'Paya',
@@ -103,6 +113,7 @@ class MockAymaraData {
           pronunciationGuide: 'PA-ya',
           context: 'El número 2. Paya manos = dos manos',
           emoji: '2️⃣',
+          ttsHint: 'paya',
         ),
         AymaraWord(
           word: 'Kimsa',
@@ -110,6 +121,7 @@ class MockAymaraData {
           pronunciationGuide: 'KIM-sa',
           context: 'El número 3',
           emoji: '3️⃣',
+          ttsHint: 'kimsa',
         ),
         AymaraWord(
           word: 'Pusi',
@@ -117,6 +129,7 @@ class MockAymaraData {
           pronunciationGuide: 'PU-si',
           context: 'El número 4',
           emoji: '4️⃣',
+          ttsHint: 'pusi',
         ),
         AymaraWord(
           word: 'Phisqa',
@@ -124,6 +137,7 @@ class MockAymaraData {
           pronunciationGuide: 'PHIS-qa',
           context: 'El número 5. Como los dedos de una mano',
           emoji: '5️⃣',
+          ttsHint: 'piska',
         ),
       ],
     ),
@@ -143,6 +157,7 @@ class MockAymaraData {
           pronunciationGuide: 'chu-PI-ka',
           context: 'Rojo como la bandera de Bolivia',
           emoji: '🔴',
+          ttsHint: 'chupika',
         ),
         AymaraWord(
           word: 'Qillu',
@@ -150,6 +165,7 @@ class MockAymaraData {
           pronunciationGuide: 'QI-llu',
           context: 'Amarillo como el sol del altiplano',
           emoji: '🟡',
+          ttsHint: 'kiyu',
         ),
         AymaraWord(
           word: 'Ch\'uxña',
@@ -157,6 +173,7 @@ class MockAymaraData {
           pronunciationGuide: 'CHUJ-ña',
           context: 'Verde como las plantas de los Yungas',
           emoji: '🟢',
+          ttsHint: 'chujnia',
         ),
         AymaraWord(
           word: 'Larama',
@@ -164,6 +181,7 @@ class MockAymaraData {
           pronunciationGuide: 'la-RA-ma',
           context: 'Azul como el cielo de La Paz',
           emoji: '🔵',
+          ttsHint: 'larama',
         ),
       ],
     ),
@@ -183,6 +201,7 @@ class MockAymaraData {
           pronunciationGuide: 'QAW-ra',
           context: 'La llama, el animal más querido del altiplano',
           emoji: '🦙',
+          ttsHint: 'kaura',
         ),
         AymaraWord(
           word: 'Kunturi',
@@ -190,6 +209,7 @@ class MockAymaraData {
           pronunciationGuide: 'kun-TU-ri',
           context: 'El cóndor, el ave que vuela más alto',
           emoji: '🦅',
+          ttsHint: 'kunturi',
         ),
         AymaraWord(
           word: 'Anu',
@@ -197,6 +217,7 @@ class MockAymaraData {
           pronunciationGuide: 'A-nu',
           context: 'El perro, el mejor amigo del ser humano',
           emoji: '🐕',
+          ttsHint: 'anu',
         ),
         AymaraWord(
           word: 'Phisi',
@@ -204,6 +225,7 @@ class MockAymaraData {
           pronunciationGuide: 'PHI-si',
           context: 'El gato, compañero silencioso del hogar',
           emoji: '🐈',
+          ttsHint: 'pisi',
         ),
       ],
     ),
@@ -223,6 +245,7 @@ class MockAymaraData {
           pronunciationGuide: 'NA-yaj wa-LIK-twa',
           context: 'Para decir que te sientes bien',
           emoji: '😊',
+          ttsHint: 'nayaj waliktua',
         ),
         AymaraWord(
           word: 'Jumax kamisaki',
@@ -230,6 +253,7 @@ class MockAymaraData {
           pronunciationGuide: 'JU-maj ka-mi-SA-ki',
           context: 'Para preguntar cómo está otra persona',
           emoji: '🤗',
+          ttsHint: 'jumaj kamisaki',
         ),
         AymaraWord(
           word: 'Yuspajara',
@@ -237,6 +261,7 @@ class MockAymaraData {
           pronunciationGuide: 'yus-pa-JA-ra',
           context: 'Para agradecer a alguien',
           emoji: '🙏',
+          ttsHint: 'yuspajara',
         ),
         AymaraWord(
           word: 'Janiw yatkti',
@@ -244,6 +269,7 @@ class MockAymaraData {
           pronunciationGuide: 'JA-niw YAT-kti',
           context: 'Cuando no sabes algo. ¡Pero pronto lo aprenderás!',
           emoji: '🤔',
+          ttsHint: 'janiu yatkti',
         ),
       ],
     ),

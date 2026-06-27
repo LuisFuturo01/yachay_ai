@@ -155,26 +155,49 @@ class _TutorChatScreenState extends State<TutorChatScreen> {
           style: GoogleFonts.nunito(color: YachayTheme.textMedium),
           textAlign: TextAlign.center,
         ),
-        actionsAlignment: MainAxisAlignment.center,
+        actionsPadding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
         actions: [
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Exit lesson
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: YachayTheme.errorPink,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            ),
-            child: Text('Salir', style: GoogleFonts.nunito(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-          OutlinedButton(
-            onPressed: () => Navigator.pop(context),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              side: const BorderSide(color: YachayTheme.primaryPurple, width: 2),
-            ),
-            child: Text('Seguir Jugando', style: GoogleFonts.nunito(fontWeight: FontWeight.bold)),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: YachayTheme.primaryPurple,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: YachayTheme.radiusSmall,
+                  ),
+                  elevation: 2,
+                ),
+                child: Text(
+                  'Seguir Jugando 🎮',
+                  style: GoogleFonts.nunito(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context); // Close dialog
+                  Navigator.pop(context); // Exit lesson
+                },
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: Text(
+                  'Salir de la lección',
+                  style: GoogleFonts.nunito(
+                    color: YachayTheme.errorPink,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

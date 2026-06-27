@@ -3,6 +3,7 @@ import '../data/mock_science_data.dart';
 import '../data/mock_social_data.dart';
 import '../data/mock_aymara_data.dart';
 import '../models/lesson.dart';
+import '../models/yachay_response.dart';
 
 /// Service abstraction layer for the AI tutor.
 /// Currently uses mock data; will be replaced by Gemini API calls via Cloud Run.
@@ -70,21 +71,39 @@ class TutorService {
     final question = lesson.questions[questionIndex];
     final isCorrect = _normalizeAnswer(userAnswer) == _normalizeAnswer(question.correctAnswer);
 
-    if (isCorrect) {
-      return TutorResponse(
-        isCorrect: true,
-        message: '🎉 ¡Excelente! ${question.explanation}',
-        type: ResponseType.correct,
-      );
-    } else {
-      // Socratic method: give hints instead of the answer
-      return TutorResponse(
-        isCorrect: false,
-        message: '🤔 ${question.hints.first}',
-        type: ResponseType.hint,
-        hintsRemaining: question.hints.length - 1,
-      );
-    }
+    // Simulate standard prompt library response payload (JSON-01, JSON-03, JSON-04)
+    final Map<String, dynamic> apiResponsePayload = {
+      "tipo": "retroalimentacion",
+      "titulo": subjectId == 'math' 
+          ? "Matemáticas" 
+          : (subjectId == 'science' ? "Ciencias Naturales" : "Ciencias Sociales"),
+      "mensaje": isCorrect ? "🎉 ¡Excelente!" : "¡Buen intento! 😊",
+      "contenido": {
+        "correcto": isCorrect,
+        "explicacion": question.explanation,
+        "pista": question.hints.first,
+        "pregunta_guiada": question.hints.length > 1 ? question.hints[1] : null,
+        "nuevo_intento": !isCorrect
+      },
+      "metadata": {
+        "tema": subjectId,
+        "nivel": "Nivel ${level + 1}"
+      }
+    };
+
+    // Deserialize utilizing the new YachayResponse model, matching future production API consumption
+    final parsedResponse = YachayResponse.fromJson(apiResponsePayload);
+    final content = parsedResponse.contenido;
+    final isAnswerCorrect = content['correcto'] as bool? ?? false;
+
+    return TutorResponse(
+      isCorrect: isAnswerCorrect,
+      message: isAnswerCorrect
+          ? "${parsedResponse.mensaje} ${content['explicacion']}"
+          : "🤔 ${content['pista']}",
+      type: isAnswerCorrect ? ResponseType.correct : ResponseType.hint,
+      hintsRemaining: isAnswerCorrect ? 0 : 1,
+    );
   }
 
   // ─── Get Additional Hint ───
@@ -121,15 +140,35 @@ class TutorService {
     // Mock: return random-ish results based on word index
     final precisions = [85, 72, 90, 65, 78, 88, 95, 60, 80, 70];
     final precision = precisions[wordIndex % precisions.length];
-    
+    final isGood = precision >= 70;
+
+    // Simulate standard prompt library response payload (JSON-02)
+    final Map<String, dynamic> apiResponsePayload = {
+      "tipo": "evaluacion_pronunciacion",
+      "mensaje": isGood ? "¡Muy bien! 😊" : "¡Sigue practicando! 💪",
+      "contenido": {
+        "precision_porcentaje": precision,
+        "transcripcion_detectada": lesson.words[wordIndex].word,
+        "observaciones_foneticas": isGood 
+            ? "¡Tu pronunciación es excelente!" 
+            : "Intenta marcar más la sílaba fuerte.",
+        "requiere_repeticion": !isGood
+      },
+      "metadata": {
+        "palabra": lesson.words[wordIndex].word,
+        "categoria": "Saludos",
+        "nivel": "Básico"
+      }
+    };
+
+    // Deserialize utilizing the new YachayResponse model, matching future production API consumption
+    final parsedResponse = YachayResponse.fromJson(apiResponsePayload);
+    final content = parsedResponse.contenido;
+
     return AymaraPronunciationResult(
-      precision: precision,
-      feedback: precision >= 80
-          ? '¡Muy bien! Tu pronunciación es excelente.'
-          : precision >= 60
-              ? '¡Buen intento! Intenta marcar más la sílaba fuerte.'
-              : 'Sigue practicando. Escucha de nuevo y repite más lento.',
-      isGood: precision >= 70,
+      precision: content['precision_porcentaje'] as int? ?? 0,
+      feedback: "${parsedResponse.mensaje} ${content['observaciones_foneticas']}",
+      isGood: (content['precision_porcentaje'] as int? ?? 0) >= 70,
     );
   }
 

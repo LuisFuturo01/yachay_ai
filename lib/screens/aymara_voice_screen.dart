@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../config/theme.dart';
 import '../data/mock_aymara_data.dart';
 import '../services/tutor_service.dart';
+import '../services/voice_service.dart';
 import '../widgets/progress_ring.dart';
 
 class AymaraVoiceScreen extends StatefulWidget {
@@ -27,6 +28,8 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
   int _wordsCompleted = 0;
   late AnimationController _pulseController;
   bool _isFlipped = false;
+  String? _recordedFilePath;
+  bool _isVerified = false;
 
   @override
   void initState() {
@@ -36,31 +39,76 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     );
+    _initVoice();
+  }
+
+  Future<void> _initVoice() async {
+    await VoiceService.instance.initialize();
+    // Speak the first word after a short delay
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (mounted) _speakCurrentWord();
+    });
+  }
+
+  Future<void> _speakCurrentWord() async {
+    // Use the phonetic ttsHint for correct pronunciation,
+    // fall back to the raw word if no hint is set.
+    final textToSpeak = _currentWord.ttsHint ?? _currentWord.word;
+    await VoiceService.instance.hablar(textToSpeak);
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
+    // Cancel any ongoing recording when leaving the screen
+    if (_isRecording) {
+      VoiceService.instance.cancelarGrabacion();
+    }
     super.dispose();
   }
 
   AymaraWord get _currentWord => _lesson.words[_currentWordIndex];
 
   Future<void> _startRecording() async {
+    // Stop any TTS or playback that might be playing
+    await VoiceService.instance.pararDeHablar();
+    await VoiceService.instance.detenerReproduccion();
+
     setState(() {
       _isRecording = true;
       _showResult = false;
+      _recordedFilePath = null;
+      _isVerified = false;
     });
     _pulseController.repeat(reverse: true);
 
-    // Simulate recording + processing
-    await Future.delayed(const Duration(seconds: 2));
+    // Start real microphone recording
+    final started = await VoiceService.instance.empezarAGrabar();
+    if (!started) {
+      if (mounted) {
+        _pulseController.stop();
+        _pulseController.reset();
+        setState(() => _isRecording = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '🎙️ No se pudo acceder al micrófono. Verifica los permisos.',
+              style: GoogleFonts.nunito(fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: YachayTheme.warningOrange,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
 
-    // Get mock pronunciation result
-    final result = await TutorService.instance.evaluatePronunciation(
-      level: widget.level,
-      wordIndex: _currentWordIndex,
-    );
+    // Record for 3 seconds then stop
+    await Future.delayed(const Duration(seconds: 3));
+
+    // Stop recording and get path
+    final audioPath = await VoiceService.instance.terminarDeGrabar();
+    debugPrint('🎧 Audio grabado en: $audioPath');
 
     if (!mounted) return;
 
@@ -69,6 +117,46 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
 
     setState(() {
       _isRecording = false;
+      _recordedFilePath = audioPath;
+    });
+  }
+
+  Future<void> _toggleUserAudio() async {
+    if (_recordedFilePath == null) return;
+
+    if (VoiceService.instance.isPlayingAudio) {
+      await VoiceService.instance.detenerReproduccion();
+      setState(() {});
+    } else {
+      setState(() {});
+      await VoiceService.instance.reproducirAudio(_recordedFilePath!);
+      // Refresh state when audio finished (recording is exactly 3 seconds long)
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) setState(() {});
+      });
+    }
+  }
+
+  Future<void> _verifyPronunciation() async {
+    if (_recordedFilePath == null) return;
+
+    setState(() {
+      _isVerified = true;
+    });
+
+    // TODO: When backend API is ready (Dev 3/4), send _recordedFilePath
+    // to the pronunciation evaluation endpoint instead of mock.
+    // Example: final result = await ApiService.evaluatePronunciation(_recordedFilePath!, _currentWord.word);
+
+    // For now, use mock pronunciation result
+    final result = await TutorService.instance.evaluatePronunciation(
+      level: widget.level,
+      wordIndex: _currentWordIndex,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
       _showResult = true;
       _precision = result.precision;
       _feedback = result.feedback;
@@ -80,9 +168,15 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
     setState(() {
       _wordsCompleted++;
       _isFlipped = false; // Reset card flip
+      _recordedFilePath = null;
+      _isVerified = false;
       if (_currentWordIndex < _lesson.words.length - 1) {
         _currentWordIndex++;
         _showResult = false;
+        // Speak the next word automatically
+        Future.delayed(const Duration(milliseconds: 400), () {
+          if (mounted) _speakCurrentWord();
+        });
       } else {
         // Lesson complete
         Navigator.pushReplacementNamed(
@@ -136,7 +230,8 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
                       const SizedBox(height: 32),
 
                       // ─── Microphone Button ───
-                      _buildMicButton(),
+                      if (_recordedFilePath == null)
+                        _buildMicButton(),
 
                       const SizedBox(height: 24),
 
@@ -156,6 +251,12 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
                               end: 0.5,
                               duration: 800.ms,
                             ),
+
+                      // ─── Playback & Verify Actions ───
+                      if (_recordedFilePath != null && !_isVerified) ...[
+                        _buildPlaybackCard(),
+                        const SizedBox(height: 24),
+                      ],
 
                       // ─── Result ───
                       if (_showResult) ...[
@@ -389,23 +490,49 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
 
   Widget _buildPronunciationGuide() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: YachayTheme.surfaceGold,
         borderRadius: YachayTheme.radiusSmall,
         border: Border.all(color: YachayTheme.secondaryGold.withValues(alpha: 0.4), width: 1.5),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Text('📖', style: TextStyle(fontSize: 20)),
           const SizedBox(width: 10),
-          Text(
-            'Pronunciación: ${_currentWord.pronunciationGuide}',
-            style: GoogleFonts.nunito(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: YachayTheme.textDark,
+          Expanded(
+            child: Text(
+              'Pronunciación: ${_currentWord.pronunciationGuide}',
+              style: GoogleFonts.nunito(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: YachayTheme.textDark,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Listen button — speak the word via TTS
+          GestureDetector(
+            onTap: _isRecording ? null : _speakCurrentWord,
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: YachayTheme.aymaraColor,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: YachayTheme.aymaraColor.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.volume_up_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
             ),
           ),
         ],
@@ -473,6 +600,135 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
           duration: 600.ms,
           curve: Curves.elasticOut,
         );
+  }
+
+  Widget _buildPlaybackCard() {
+    final isPlaying = VoiceService.instance.isPlayingAudio;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: YachayTheme.radiusMedium,
+        border: Border.all(
+          color: YachayTheme.primaryPurple.withValues(alpha: 0.15),
+          width: 2.5,
+        ),
+        boxShadow: YachayTheme.cardShadow,
+      ),
+      child: Column(
+        children: [
+          Text(
+            '¡Grabación lista! 🎙️✨',
+            style: GoogleFonts.outfit(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: YachayTheme.textDark,
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Playback control
+          GestureDetector(
+            onTap: _toggleUserAudio,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                color: isPlaying ? YachayTheme.errorPink : YachayTheme.primaryPurple,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: YachayTheme.getButton3DShadow(
+                  isPlaying ? const Color(0xFFB91C1C) : YachayTheme.primaryPurpleDark,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isPlaying ? Icons.stop_rounded : Icons.play_arrow_rounded,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    isPlaying ? 'Detener audio' : 'Escuchar mi grabación 🎧',
+                    style: GoogleFonts.nunito(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ).animate(target: isPlaying ? 1 : 0).scale(begin: const Offset(1, 1), end: const Offset(1.05, 1.05)),
+
+          const SizedBox(height: 24),
+
+          // Actions: Send or retry
+          Row(
+            children: [
+              // Retry Button
+              Expanded(
+                child: GestureDetector(
+                  onTap: _startRecording,
+                  child: Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: YachayTheme.radiusMedium,
+                      border: Border.all(color: YachayTheme.primaryPurple, width: 2),
+                      boxShadow: YachayTheme.getButton3DShadow(YachayTheme.surfacePurple),
+                    ),
+                    child: Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'Grabar de nuevo 🔄',
+                          style: GoogleFonts.nunito(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: YachayTheme.primaryPurple,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              // Verify Button
+              Expanded(
+                child: GestureDetector(
+                  onTap: _verifyPronunciation,
+                  child: Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      gradient: YachayTheme.primaryGradient,
+                      borderRadius: YachayTheme.radiusMedium,
+                      boxShadow: YachayTheme.getButton3DShadow(YachayTheme.primaryPurpleDark),
+                    ),
+                    child: Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'Verificar voz 🚀',
+                          style: GoogleFonts.nunito(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1);
   }
 
   Widget _buildResultCard() {

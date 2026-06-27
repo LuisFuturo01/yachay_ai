@@ -137,7 +137,7 @@ class _HomeMapScreenState extends State<HomeMapScreen> {
                             crossAxisCount: 2,
                             mainAxisSpacing: 18,
                             crossAxisSpacing: 18,
-                            childAspectRatio: 0.85,
+                            childAspectRatio: 0.8,
                           ),
                           itemCount: _subjects.length,
                           itemBuilder: (context, index) {

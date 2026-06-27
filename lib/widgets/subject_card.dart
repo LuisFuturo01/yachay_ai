@@ -39,7 +39,7 @@ class SubjectCard extends StatelessWidget {
       onTap: isLocked ? null : onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
         decoration: BoxDecoration(
           gradient: cardGradient,
           borderRadius: YachayTheme.radiusLarge,
@@ -62,29 +62,29 @@ class SubjectCard extends StatelessWidget {
               children: [
                 ProgressRing(
                   progress: progress,
-                  size: 76,
-                  strokeWidth: 7,
+                  size: 66,
+                  strokeWidth: 6,
                   color: isLocked ? Colors.grey : YachayTheme.secondaryGold,
                   backgroundColor: Colors.white.withValues(alpha: 0.25),
                 ),
                 if (isLocked)
-                  Icon(Icons.lock_rounded, size: 28, color: Colors.grey.shade600)
+                  Icon(Icons.lock_rounded, size: 24, color: Colors.grey.shade600)
                 else
                   Text(
                     emoji,
-                    style: const TextStyle(fontSize: 32),
+                    style: const TextStyle(fontSize: 28),
                   )
                       .animate(onPlay: (c) => c.repeat(reverse: true))
                       .slideY(begin: 0, end: -0.15, duration: 1.5.seconds, curve: Curves.easeInOut),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
 
             // Subject name
             Text(
               name,
               style: GoogleFonts.outfit(
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: FontWeight.bold,
                 color: isLocked ? Colors.grey.shade700 : Colors.white,
                 shadows: isLocked
@@ -101,7 +101,7 @@ class SubjectCard extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
 
             // Level indicator badge
             if (!isLocked)
