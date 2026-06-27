@@ -23,7 +23,7 @@ class TutorService {
   static String? lastApiError;
 
   // Gemini API Key fallback from environment configuration
-  static const String _geminiApiKey = 'AQ.Ab8RN6IhJh3ZF48KzGAA6_Q-IQG46TPxiKZ7R2jQPr-dFl6X2Q';
+  static const String _geminiApiKey = '';
 
   // Cache of dynamically generated lessons
   final Map<String, Lesson> _dynamicLessons = {};
@@ -314,8 +314,10 @@ Responde únicamente con el JSON crudo, sin markdown, bloques de código, ni tex
   }) async {
     // List of models to try in case of model-not-found or regional restrictions
     final models = [
+      'gemini-3.5-flash',
       'gemini-2.0-flash',
       'gemini-2.0-flash-lite',
+      'gemini-1.5-flash',
       'gemini-2.5-flash-preview-05-20',
     ];
 
@@ -537,6 +539,7 @@ $jsonPrompt
 
       // List of models to try in case of model-not-found or regional restrictions
       final models = [
+        'gemini-3.5-flash',
         'gemini-2.0-flash',
         'gemini-2.0-flash-lite',
         'gemini-2.5-flash-preview-05-20',

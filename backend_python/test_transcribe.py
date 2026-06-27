@@ -72,9 +72,10 @@ base64_audio = base64.b64encode(audio_bytes).decode("utf-8")
 
 # Paso 3: Llamar a la API REST de Gemini (Mismo payload que usa Flutter)
 models = [
-    "gemini-1.5-flash",
-    "gemini-1.5-flash-latest",
-    "gemini-2.0-flash"
+    "gemini-3.5-flash",
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
+    "gemini-2.5-flash-preview-05-20",
 ]
 
 target_word = "Jallalla"

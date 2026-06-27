@@ -19,6 +19,7 @@ print(f"API Key: {api_key[:10]}...{api_key[-5:] if len(api_key) > 10 else ''}")
 
 # Modelos a probar (actualizados junio 2026)
 models = [
+    "gemini-3.5-flash",
     "gemini-2.0-flash",
     "gemini-2.0-flash-lite",
     "gemini-2.5-flash-preview-05-20",
