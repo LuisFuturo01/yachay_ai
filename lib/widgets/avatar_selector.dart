@@ -23,7 +23,7 @@ class AvatarSelector extends StatelessWidget {
         crossAxisCount: 3,
         mainAxisSpacing: 16,
         crossAxisSpacing: 16,
-        childAspectRatio: 0.82,
+        childAspectRatio: 0.72, // Made taller to prevent vertical overflows
       ),
       itemCount: MockAvatars.avatars.length,
       itemBuilder: (context, index) {
@@ -56,7 +56,7 @@ class _AvatarCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget cardChild = Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10), // Compact padding
       decoration: BoxDecoration(
         gradient: isSelected
             ? YachayTheme.mathGradient
@@ -79,20 +79,24 @@ class _AvatarCard extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Emoji with separate animation
+          // Emoji with separate animation (slightly reduced for mobile safety)
           Text(
             avatar.emoji,
-            style: const TextStyle(fontSize: 44),
+            style: const TextStyle(fontSize: 38),
           ),
           const SizedBox(height: 8),
-          Text(
-            avatar.name,
-            style: GoogleFonts.outfit(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: isSelected ? Colors.white : YachayTheme.textDark,
+          // Wrapped in FittedBox to scale down text on small screens instead of overflowing
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              avatar.name,
+              style: GoogleFonts.outfit(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? Colors.white : YachayTheme.textDark,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
           ),
         ],
       ),

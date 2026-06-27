@@ -49,20 +49,10 @@ class _SplashScreenState extends State<SplashScreen> {
               const Spacer(flex: 2),
 
               // ─── Logo Icon ───
-              Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.3),
-                    width: 3,
-                  ),
-                ),
-                child: const Center(
-                  child: Text('🦙', style: TextStyle(fontSize: 60)),
-                ),
+              Image.asset(
+                'web/favicon.png',
+                height: 130,
+                fit: BoxFit.contain,
               )
                   .animate()
                   .fadeIn(duration: 800.ms)

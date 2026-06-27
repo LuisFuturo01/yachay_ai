@@ -1,6 +1,6 @@
 {
-    "name": "yachay_ai",
-    "short_name": "yachay_ai",
+    "name": "Yachay AI",
+    "short_name": "Yachay AI",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

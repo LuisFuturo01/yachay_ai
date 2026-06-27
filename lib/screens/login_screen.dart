@@ -102,24 +102,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Mascot Icon
-                    Container(
-                      width: 90,
-                      height: 90,
-                      decoration: BoxDecoration(
-                        gradient: YachayTheme.mathGradient,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: YachayTheme.primaryPurple.withValues(alpha: 0.25),
-                            blurRadius: 16,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: const Center(
-                        child: Text('🧠', style: TextStyle(fontSize: 44)),
-                      ),
+                    // Mascot Icon (Logo)
+                    Image.asset(
+                      'web/favicon.png',
+                      height: 100,
+                      fit: BoxFit.contain,
                     ).animate(onPlay: (c) => c.repeat(reverse: true)).scale(
                       begin: const Offset(1, 1),
                       end: const Offset(1.06, 1.06),
