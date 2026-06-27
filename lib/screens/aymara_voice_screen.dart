@@ -44,6 +44,14 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
 
   Future<void> _initVoice() async {
     await VoiceService.instance.initialize();
+    
+    // Listen to audio player completion to update UI state instantly
+    VoiceService.instance.setOnComplete(() {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+
     // Speak the first word after a short delay
     Future.delayed(const Duration(milliseconds: 800), () {
       if (mounted) _speakCurrentWord();
@@ -119,6 +127,11 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
       _isRecording = false;
       _recordedFilePath = audioPath;
     });
+
+    if (audioPath != null) {
+      await VoiceService.instance.prepararAudio(audioPath);
+      if (mounted) setState(() {});
+    }
   }
 
   Future<void> _toggleUserAudio() async {
@@ -130,10 +143,6 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
     } else {
       setState(() {});
       await VoiceService.instance.reproducirAudio(_recordedFilePath!);
-      // Refresh state when audio finished (recording is exactly 3 seconds long)
-      Future.delayed(const Duration(seconds: 3), () {
-        if (mounted) setState(() {});
-      });
     }
   }
 
@@ -512,26 +521,32 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
           ),
           const SizedBox(width: 8),
           // Listen button — speak the word via TTS
-          GestureDetector(
-            onTap: _isRecording ? null : _speakCurrentWord,
-            child: Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: YachayTheme.aymaraColor,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: YachayTheme.aymaraColor.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.volume_up_rounded,
-                color: Colors.white,
-                size: 20,
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: _isRecording ? null : _speakCurrentWord,
+              highlightColor: Colors.black.withValues(alpha: 0.15),
+              splashColor: Colors.black.withValues(alpha: 0.1),
+              child: Ink(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: YachayTheme.aymaraColor,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: YachayTheme.aymaraColor.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.volume_up_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
             ),
           ),
@@ -541,59 +556,65 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
   }
 
   Widget _buildMicButton() {
-    return GestureDetector(
-      onTap: _isRecording ? null : _startRecording,
-      child: AnimatedBuilder(
-        animation: _pulseController,
-        builder: (context, child) {
-          return Stack(
-            alignment: Alignment.center,
-            children: [
-              // Wave 1
-              if (_isRecording)
-                Container(
-                  width: 120 + (_pulseController.value * 50),
-                  height: 120 + (_pulseController.value * 50),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: YachayTheme.errorPink.withValues(alpha: 0.15 * (1.0 - _pulseController.value)),
-                  ),
-                ),
-              // Wave 2
-              if (_isRecording)
-                Container(
-                  width: 120 + (((_pulseController.value + 0.5) % 1.0) * 50),
-                  height: 120 + (((_pulseController.value + 0.5) % 1.0) * 50),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: YachayTheme.errorPink.withValues(alpha: 0.15 * (1.0 - ((_pulseController.value + 0.5) % 1.0))),
-                  ),
-                ),
-              // Main circular mic button with 3D press shadow
+    return AnimatedBuilder(
+      animation: _pulseController,
+      builder: (context, child) {
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            // Wave 1
+            if (_isRecording)
               Container(
-                width: 120,
-                height: 120,
+                width: 120 + (_pulseController.value * 50),
+                height: 120 + (_pulseController.value * 50),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: _isRecording
-                        ? [YachayTheme.errorPink, const Color(0xFFFF6B8A)]
-                        : [YachayTheme.aymaraColor, const Color(0xFFF59E0B)],
-                  ),
-                  boxShadow: YachayTheme.getButton3DShadow(
-                    _isRecording ? const Color(0xFFB91C1C) : const Color(0xFFC2410C),
-                  ),
-                ),
-                child: Icon(
-                  _isRecording ? Icons.mic_rounded : Icons.mic_none_rounded,
-                  color: Colors.white,
-                  size: 50,
+                  color: YachayTheme.errorPink.withValues(alpha: 0.15 * (1.0 - _pulseController.value)),
                 ),
               ),
-            ],
-          );
-        },
-      ),
+            // Wave 2
+            if (_isRecording)
+              Container(
+                width: 120 + (((_pulseController.value + 0.5) % 1.0) * 50),
+                height: 120 + (((_pulseController.value + 0.5) % 1.0) * 50),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: YachayTheme.errorPink.withValues(alpha: 0.15 * (1.0 - ((_pulseController.value + 0.5) % 1.0))),
+                ),
+              ),
+            // Main circular mic button with 3D press shadow and visual tap response
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: _isRecording ? null : _startRecording,
+                highlightColor: Colors.black.withValues(alpha: 0.15),
+                splashColor: Colors.black.withValues(alpha: 0.1),
+                child: Ink(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: _isRecording
+                          ? [YachayTheme.errorPink, const Color(0xFFFF6B8A)]
+                          : [YachayTheme.aymaraColor, const Color(0xFFF59E0B)],
+                    ),
+                    boxShadow: YachayTheme.getButton3DShadow(
+                      _isRecording ? const Color(0xFFB91C1C) : const Color(0xFFC2410C),
+                    ),
+                  ),
+                  child: Icon(
+                    _isRecording ? Icons.mic_rounded : Icons.mic_none_rounded,
+                    color: Colors.white,
+                    size: 50,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     ).animate().scale(
           begin: const Offset(0.8, 0.8),
           end: const Offset(1, 1),
@@ -629,35 +650,41 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
           const SizedBox(height: 14),
 
           // Playback control
-          GestureDetector(
-            onTap: _toggleUserAudio,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                color: isPlaying ? YachayTheme.errorPink : YachayTheme.primaryPurple,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: YachayTheme.getButton3DShadow(
-                  isPlaying ? const Color(0xFFB91C1C) : YachayTheme.primaryPurpleDark,
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(24),
+              onTap: _toggleUserAudio,
+              highlightColor: Colors.black.withValues(alpha: 0.15),
+              splashColor: Colors.black.withValues(alpha: 0.1),
+              child: Ink(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isPlaying ? YachayTheme.errorPink : YachayTheme.primaryPurple,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: YachayTheme.getButton3DShadow(
+                    isPlaying ? const Color(0xFFB91C1C) : YachayTheme.primaryPurpleDark,
+                  ),
                 ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    isPlaying ? Icons.stop_rounded : Icons.play_arrow_rounded,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    isPlaying ? 'Detener audio' : 'Escuchar mi grabación 🎧',
-                    style: GoogleFonts.nunito(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isPlaying ? Icons.stop_rounded : Icons.play_arrow_rounded,
                       color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
+                      size: 24,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    Text(
+                      isPlaying ? 'Detener audio' : 'Escuchar mi grabación 🎧',
+                      style: GoogleFonts.nunito(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ).animate(target: isPlaying ? 1 : 0).scale(begin: const Offset(1, 1), end: const Offset(1.05, 1.05)),
@@ -669,25 +696,31 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
             children: [
               // Retry Button
               Expanded(
-                child: GestureDetector(
-                  onTap: _startRecording,
-                  child: Container(
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: YachayTheme.radiusMedium,
-                      border: Border.all(color: YachayTheme.primaryPurple, width: 2),
-                      boxShadow: YachayTheme.getButton3DShadow(YachayTheme.surfacePurple),
-                    ),
-                    child: Center(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          'Grabar de nuevo 🔄',
-                          style: GoogleFonts.nunito(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: YachayTheme.primaryPurple,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: YachayTheme.radiusMedium,
+                    onTap: _startRecording,
+                    highlightColor: Colors.black.withValues(alpha: 0.08),
+                    splashColor: Colors.black.withValues(alpha: 0.05),
+                    child: Ink(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: YachayTheme.radiusMedium,
+                        border: Border.all(color: YachayTheme.primaryPurple, width: 2),
+                        boxShadow: YachayTheme.getButton3DShadow(YachayTheme.surfacePurple),
+                      ),
+                      child: Center(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Grabar de nuevo 🔄',
+                            style: GoogleFonts.nunito(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: YachayTheme.primaryPurple,
+                            ),
                           ),
                         ),
                       ),
@@ -699,24 +732,30 @@ class _AymaraVoiceScreenState extends State<AymaraVoiceScreen>
 
               // Verify Button
               Expanded(
-                child: GestureDetector(
-                  onTap: _verifyPronunciation,
-                  child: Container(
-                    height: 48,
-                    decoration: BoxDecoration(
-                      gradient: YachayTheme.primaryGradient,
-                      borderRadius: YachayTheme.radiusMedium,
-                      boxShadow: YachayTheme.getButton3DShadow(YachayTheme.primaryPurpleDark),
-                    ),
-                    child: Center(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          'Verificar voz 🚀',
-                          style: GoogleFonts.nunito(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: YachayTheme.radiusMedium,
+                    onTap: _verifyPronunciation,
+                    highlightColor: Colors.black.withValues(alpha: 0.15),
+                    splashColor: Colors.black.withValues(alpha: 0.1),
+                    child: Ink(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        gradient: YachayTheme.primaryGradient,
+                        borderRadius: YachayTheme.radiusMedium,
+                        boxShadow: YachayTheme.getButton3DShadow(YachayTheme.primaryPurpleDark),
+                      ),
+                      child: Center(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Verificar voz 🚀',
+                            style: GoogleFonts.nunito(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),

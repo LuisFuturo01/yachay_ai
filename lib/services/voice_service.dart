@@ -49,6 +49,12 @@ class VoiceService {
     _audioPlayerInitialized = true;
   }
 
+  /// Register a callback to be invoked when audio playback finishes.
+  void setOnComplete(VoidCallback callback) {
+    _initAudioPlayer();
+    _audioPlayer.onPlayerComplete.listen((_) => callback());
+  }
+
   Future<void> _initTts() async {
     if (_ttsInitialized) return;
 
@@ -171,6 +177,27 @@ class VoiceService {
   }
 
   // ─── PARTE 3: REPRODUCIR LA GRABACIÓN (Audio Playback) ───
+
+  /// Pre-load the recorded audio file path to make it play instantly
+  Future<void> prepararAudio(String path) async {
+    _initAudioPlayer();
+    try {
+      if (kIsWeb) {
+        await _audioPlayer.setSource(UrlSource(path));
+      } else {
+        String cleanPath = path;
+        if (cleanPath.startsWith('file://')) {
+          cleanPath = cleanPath.substring(7);
+        } else if (cleanPath.startsWith('file:/')) {
+          cleanPath = cleanPath.substring(6);
+        }
+        await _audioPlayer.setSource(DeviceFileSource(cleanPath));
+      }
+      debugPrint('🎵 Audio pre-cargado para reproducción instantánea: $path');
+    } catch (e) {
+      debugPrint('❌ Error al pre-cargar audio: $e');
+    }
+  }
 
   /// Play the recorded audio file from the given [path].
   Future<void> reproducirAudio(String path) async {
